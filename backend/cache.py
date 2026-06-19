@@ -17,14 +17,19 @@ def make_key(text: str) -> str:
 
 
 class AnalysisCache:
-    """SHA256-keyed cache. In-memory dict backed by a JSON file on disk."""
+    """SHA256-keyed cache. In-memory dict backed by a JSON file on disk.
 
-    def __init__(self, disk_path: Union[str, Path] = "cache_store.json"):
-        self.disk_path = Path(disk_path)
+    Pass ``disk_path=None`` for a memory-only instance (useful in tests).
+    """
+
+    def __init__(self, disk_path: Union[str, Path, None] = "cache_store.json"):
+        self.disk_path = Path(disk_path) if disk_path is not None else None
         self._store: dict[str, dict] = {}
         self._load()
 
     def _load(self) -> None:
+        if self.disk_path is None:
+            return
         if self.disk_path.exists():
             try:
                 self._store = json.loads(self.disk_path.read_text())
@@ -32,6 +37,8 @@ class AnalysisCache:
                 self._store = {}
 
     def _flush(self) -> None:
+        if self.disk_path is None:
+            return
         self.disk_path.write_text(json.dumps(self._store))
 
     def get(self, text: str) -> Optional[AnalyzeResponse]:
