@@ -59,6 +59,7 @@ Scoring discipline:
 """
 
 import json
+import re
 
 import anthropic
 
@@ -70,6 +71,20 @@ MODEL = "claude-sonnet-4-6"  # explicitly chosen by spec; do not substitute
 _client = anthropic.Anthropic()
 
 
+def _extract_json(raw: str) -> dict:
+    """Extract JSON dict from raw text, handling markdown fences or empty responses."""
+    raw = raw.strip()
+    # Strip ```json...``` or ```...``` fences
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    if m:
+        return json.loads(m.group(1))
+    # Bare JSON object
+    m = re.search(r"\{.*\}", raw, re.DOTALL)
+    if m:
+        return json.loads(m.group(0))
+    raise ValueError(f"No JSON object found in model response: {raw!r}")
+
+
 def score_text(text: str) -> AnalyzeResponse:
     """Score a piece of text using Claude as a TRIBE v2 proxy."""
     message = _client.messages.create(
@@ -79,5 +94,5 @@ def score_text(text: str) -> AnalyzeResponse:
         messages=[{"role": "user", "content": text}],
     )
     raw = next((b.text for b in message.content if b.type == "text"), "")
-    payload = json.loads(raw)
+    payload = _extract_json(raw)
     return AnalyzeResponse(**payload)
