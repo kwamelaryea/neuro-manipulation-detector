@@ -57,3 +57,27 @@ Scoring discipline:
 - manipulation_index MUST be consistent with the ratio above (limbic high + pfc low => high).
 - Genuinely neutral/informative text should score limbic low, pfc moderate-to-high, manipulation_index low, technique "neutral".
 """
+
+import json
+
+import anthropic
+
+from models import AnalyzeResponse
+
+MODEL = "claude-sonnet-4-6"  # explicitly chosen by spec; do not substitute
+
+# Resolves ANTHROPIC_API_KEY from the environment.
+_client = anthropic.Anthropic()
+
+
+def score_text(text: str) -> AnalyzeResponse:
+    """Score a piece of text using Claude as a TRIBE v2 proxy."""
+    message = _client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": text}],
+    )
+    raw = next((b.text for b in message.content if b.type == "text"), "")
+    payload = json.loads(raw)
+    return AnalyzeResponse(**payload)
