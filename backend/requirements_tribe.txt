@@ -1,0 +1,9 @@
+# Phase 2 dependencies — install after requirements.txt
+# tribev2 is not on PyPI; install from source:
+#   pip install git+https://huggingface.co/facebook/tribev2
+torch==2.5.1
+transformers==4.47.1
+nilearn==0.11.1
+nibabel==5.3.2
+numpy==2.2.1
+modal

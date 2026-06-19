@@ -1,37 +1,52 @@
-"""Phase 2 scorer: TRIBE v2 neural inference."""
+"""Phase 2 scorer: TRIBE v2 neural inference.
 
-from models import AnalyzeResponse
-from index import compute_scores
-from roi import get_roi_vertex_indices, roi_means
-import numpy as np
-import tempfile
+Two execution paths:
+  NMD_USE_MODAL=true  → delegates to Modal A10G (production)
+  default             → runs _run_tribe() locally (requires GPU + tribev2 installed)
+
+Tests mock _run_tribe() directly; the Modal path is not exercised in unit tests.
+"""
 import os
+
+import numpy as np
+
+from index import compute_scores
+from models import AnalyzeResponse
+from roi import get_roi_vertex_indices, roi_means
+
+_USE_MODAL = os.getenv("NMD_USE_MODAL", "false").lower() == "true"
 
 _MODEL = None
 
 
 def _run_tribe(text: str) -> np.ndarray:
+    """Local TRIBE v2 inference. Mocked in unit tests; real path needs GPU."""
     global _MODEL
     if _MODEL is None:
-        # Lazy import — tribev2 is heavy and not installed in Phase 1 / test envs
+        # Lazy import — tribev2 not installed in Phase 1 / test envs
         from tribev2 import TribeModel  # noqa: PLC0415
         _MODEL = TribeModel.from_pretrained("facebook/tribev2", cache_folder="./cache")
 
-    # Write to temp file and close before model reads — flush required on macOS
-    temp_file = tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8")
-    temp_path = temp_file.name
-    temp_file.write(text)
-    temp_file.close()
-
+    # File path required — model converts text to speech internally
+    import tempfile, os as _os  # noqa: E401
+    tf = tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8")
+    tf.write(text)
+    tf.close()
     try:
-        df = _MODEL.get_events_dataframe(text_path=temp_path)
-        preds, segments = _MODEL.predict(events=df)
+        df = _MODEL.get_events_dataframe(text_path=tf.name)
+        preds, _ = _MODEL.predict(events=df)
         return np.asarray(preds)
     finally:
-        os.unlink(temp_path)
+        _os.unlink(tf.name)
 
 
 def score_text(text: str) -> AnalyzeResponse:
+    if _USE_MODAL:
+        from modal_tribe import TribeScorer
+        scorer = TribeScorer()
+        result = scorer.score.remote(text)
+        return AnalyzeResponse(**result)
+
     acts = _run_tribe(text)
     idx = get_roi_vertex_indices()
     means = roi_means(acts, idx)
