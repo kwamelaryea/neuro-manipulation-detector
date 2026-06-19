@@ -3,7 +3,6 @@ const DEFAULT_BACKEND = "http://localhost:8000";
 // ── State ──────────────────────────────────────────────────────────────────
 
 let _currentUrl = "";
-let _lastText = "";    // stored by content.js message → background forwards it here
 let _deepRunning = false;
 
 // ── Score rendering ────────────────────────────────────────────────────────
@@ -67,12 +66,7 @@ function scoreCardHTML(data, label, scorerTag) {
 function showFastResult(url, data) {
   _currentUrl = url || _currentUrl;
   document.getElementById("urlBar").textContent = _currentUrl || "—";
-
-  document.getElementById("fastResult").innerHTML = scoreCardHTML(
-    data, "FAST SCAN", "LLM"
-  );
-
-  // Show deep scan section only once we have a fast result.
+  document.getElementById("fastResult").innerHTML = scoreCardHTML(data, "FAST SCAN", "LLM");
   document.getElementById("deepSection").style.display = "block";
 }
 
@@ -109,27 +103,61 @@ function showDeepError(msg) {
   attachDeepBtn();
 }
 
-// ── Deep scan trigger ───────────────────────────────────────────────────────
+// ── Deep scan — runs directly in the side panel page (not in the SW) ───────
+
+async function runDeepScan(text, url, tabId) {
+  if (_deepRunning) return;
+  _deepRunning = true;
+  showDeepScanning();
+
+  const { backendUrl } = await chrome.storage.sync.get("backendUrl");
+  const base = backendUrl || DEFAULT_BACKEND;
+
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 360_000);
+    const res = await fetch(`${base}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, url: url || null, mode: "deep" }),
+      signal: controller.signal,
+    });
+    clearTimeout(tid);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    showDeepResult(data);
+    chrome.storage.session.set({ lastDeepResult: { data, url, ts: Date.now() } });
+    chrome.storage.session.remove("pendingDeepScan");
+
+    // Update badge on the page that triggered the scan.
+    if (tabId) {
+      chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: true, data }).catch(() => {});
+    }
+  } catch (e) {
+    const errMsg = e.name === "AbortError" ? "Timed out after 6 min" : String(e);
+    showDeepError(errMsg);
+    chrome.storage.session.remove("pendingDeepScan");
+    if (tabId) {
+      chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: errMsg }).catch(() => {});
+    }
+  }
+}
+
+// ── Deep scan button (panel-triggered) ─────────────────────────────────────
 
 function attachDeepBtn() {
   const btn = document.getElementById("deepBtn");
   if (!btn) return;
   btn.addEventListener("click", async () => {
     if (_deepRunning) return;
-
-    // Get text from the active tab's content script.
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;
-
     chrome.tabs.sendMessage(tab.id, { type: "GET_TEXT" }, (resp) => {
       if (chrome.runtime.lastError || !resp?.text) return;
-      _deepRunning = true;
-      showDeepScanning();
-      chrome.runtime.sendMessage({
-        type: "DEEP_ANALYZE",
-        text: resp.text,
-        url: tab.url,
-      });
+      // Tell badge to show scanning state immediately.
+      chrome.tabs.sendMessage(tab.id, { type: "DEEP_SCANNING" }).catch(() => {});
+      runDeepScan(resp.text, tab.url, tab.id);
     });
   });
 }
@@ -141,24 +169,21 @@ chrome.runtime.onMessage.addListener((msg) => {
     showFastResult(msg.url, msg.data);
     attachDeepBtn();
   }
+  if (msg.type === "DO_DEEP_SCAN") {
+    // Background forwarded a badge-triggered deep scan; panel does the actual fetch.
+    runDeepScan(msg.text, msg.url, msg.tabId);
+  }
   if (msg.type === "DEEP_SCANNING") {
     showDeepScanning();
   }
-  if (msg.type === "DEEP_RESULT") {
-    if (msg.ok && msg.data) {
-      showDeepResult(msg.data);
-    } else {
-      showDeepError(msg.error);
-    }
-  }
 });
 
-// Reset panel when user navigates to a new page.
+// Reset panel when user switches tabs.
 chrome.tabs.onActivated.addListener(() => {
   document.getElementById("fastResult").innerHTML = `
     <div class="waiting">
       <div class="waiting-icon">🧠</div>
-      Scroll the page to trigger a scan
+      <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
     </div>
   `;
   document.getElementById("deepSection").style.display = "none";
@@ -193,17 +218,31 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
 async function init() {
   await loadSettings();
 
-  // If background already has a result (e.g. panel opened after scroll), show it.
-  const { lastResult, lastDeepResult } = await chrome.storage.session.get([
+  const { lastResult, lastDeepResult, pendingDeepScan } = await chrome.storage.session.get([
     "lastResult",
     "lastDeepResult",
+    "pendingDeepScan",
   ]);
+
   if (lastResult?.data) {
     showFastResult(lastResult.url, lastResult.data);
     attachDeepBtn();
+  } else {
+    // Panel opened before any scroll — ask content script to scan now.
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: "SCAN_NOW" }).catch(() => {});
   }
+
   if (lastDeepResult?.data) {
     showDeepResult(lastDeepResult.data);
+  } else if (pendingDeepScan && !_deepRunning) {
+    // Badge triggered scan before panel was open — resume it now.
+    const { text, url, tabId, ts } = pendingDeepScan;
+    if (Date.now() - ts < 300_000) {
+      runDeepScan(text, url, tabId);
+    } else {
+      chrome.storage.session.remove("pendingDeepScan");
+    }
   }
 }
 

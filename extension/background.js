@@ -60,20 +60,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "DEEP_ANALYZE") {
+    // The side panel (a persistent page) owns the deep scan fetch.
+    // Service workers can be killed by Chrome during a 4-min fetch, so we
+    // delegate the actual HTTP call to sidepanel.js instead.
     const tabId = sender.tab?.id;
-    (async () => {
-      const scanningMsg = { type: "DEEP_SCANNING", url: msg.url };
-      chrome.runtime.sendMessage(scanningMsg).catch(() => {});
-      if (tabId) chrome.tabs.sendMessage(tabId, scanningMsg).catch(() => {});
-
-      const result = await postAnalyze(msg.text, msg.url, "deep");
-      const deepMsg = { type: "DEEP_RESULT", url: msg.url, ...result };
-      if (result.ok) {
-        chrome.storage.session.set({ lastDeepResult: { ...deepMsg, ts: Date.now() } });
-      }
-      chrome.runtime.sendMessage(deepMsg).catch(() => {});
-      if (tabId) chrome.tabs.sendMessage(tabId, deepMsg).catch(() => {});
-    })();
+    if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_SCANNING" }).catch(() => {});
+    // Store request so side panel can pick it up if opened after the click.
+    chrome.storage.session.set({
+      pendingDeepScan: { text: msg.text, url: msg.url, tabId, ts: Date.now() },
+    });
+    // Forward to side panel — if it's already open it handles this immediately.
+    chrome.runtime.sendMessage({ type: "DO_DEEP_SCAN", text: msg.text, url: msg.url, tabId }).catch(() => {});
     return false;
   }
 

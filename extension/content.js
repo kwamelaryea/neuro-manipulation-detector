@@ -131,7 +131,22 @@ function renderBadge(data, scorerLabel) {
           <span class="nmd-label">TRIBE v2 scanning</span>
         </div>
       `;
-      chrome.runtime.sendMessage({ type: "DEEP_ANALYZE", text: _lastText, url: location.href });
+      // Guard against "Extension context invalidated" if the extension was
+      // reloaded while this content script was still alive.
+      try {
+        if (chrome.runtime?.id) {
+          chrome.runtime.sendMessage({ type: "DEEP_ANALYZE", text: _lastText, url: location.href });
+        } else {
+          throw new Error("context invalidated");
+        }
+      } catch (_) {
+        badge.classList.remove("nmd-scanning");
+        badge.innerHTML += `
+          <div style="color:#D97706;font-size:10px;margin-top:4px">
+            Reload the page to re-enable NMD
+          </div>
+        `;
+      }
     });
   }
 }
@@ -141,6 +156,19 @@ function renderBadge(data, scorerLabel) {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "GET_TEXT") {
     sendResponse({ text: _lastText || extractVisibleText() });
+    return true;
+  }
+  if (msg.type === "SCAN_NOW") {
+    // Side panel requested an immediate scan (e.g. opened before any scroll).
+    const text = extractVisibleText();
+    if (text.length >= MIN_CHARS) {
+      _lastText = text;
+      chrome.runtime.sendMessage({ type: "ANALYZE", text, url: location.href }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        if (!resp || !resp.ok) return;
+        renderBadge(resp.data, null);
+      });
+    }
     return true;
   }
   if (msg.type === "DEEP_SCANNING") {
