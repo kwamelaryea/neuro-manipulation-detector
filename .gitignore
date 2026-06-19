@@ -1,0 +1,6 @@
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/cache_store.json
+.env
