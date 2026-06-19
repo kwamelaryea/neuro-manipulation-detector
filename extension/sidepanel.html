@@ -30,12 +30,16 @@
       gap: 10px;
     }
     .logo-icon {
-      width: 28px; height: 28px;
-      border-radius: 7px;
-      background: linear-gradient(135deg, #6D28D9, #14B8A6);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      overflow: hidden;
       flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
     }
     .logo-text .name {
       font-weight: 700;
@@ -229,7 +233,7 @@
       text-align: center;
       color: #30363D;
     }
-    .waiting-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+    .waiting-icon { width: 40px; height: 40px; margin: 0 auto 8px; opacity: 0.4; }
     .waiting-text { font-size: 12px; line-height: 1.6; }
 
     /* ── Deep scan section ──────────────────────────────── */
@@ -335,7 +339,7 @@
 
   <div class="header">
     <div class="logo">
-      <div class="logo-icon">🧠</div>
+      <div class="logo-icon"><img src="icons/icon32.png" alt="NMD" /></div>
       <div class="logo-text">
         <div class="name">NMD</div>
         <div class="sub">Neuro Manipulation Detector</div>
@@ -348,7 +352,7 @@
 
   <div id="fastResult">
     <div class="waiting">
-      <div class="waiting-icon">🧠</div>
+      <img class="waiting-icon" src="icons/icon32.png" alt="" />
       <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
     </div>
   </div>

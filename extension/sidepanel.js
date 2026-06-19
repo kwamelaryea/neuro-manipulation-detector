@@ -212,7 +212,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 chrome.tabs.onActivated.addListener(() => {
   document.getElementById("fastResult").innerHTML = `
     <div class="waiting">
-      <div class="waiting-icon">🧠</div>
+      <img class="waiting-icon" src="icons/icon32.png" alt="" />
       <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
     </div>
   `;
