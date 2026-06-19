@@ -3,7 +3,7 @@
   "name": "Neuro Manipulation Detector",
   "version": "0.1.0",
   "description": "Scans visible page text and shows the neural/emotional response it's engineered to trigger.",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "sidePanel", "tabs"],
   "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
   "background": {
     "service_worker": "background.js"
@@ -16,8 +16,10 @@
       "run_at": "document_idle"
     }
   ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Neuro Manipulation Detector"
   },
   "content_security_policy": {

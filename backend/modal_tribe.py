@@ -3,12 +3,14 @@
 Deploys to Modal A10G. Model weights cached in a Modal Volume so they
 download once and persist across cold starts.
 
-Deploy:    modal deploy backend/modal_tribe.py
-Smoke test: modal run backend/modal_tribe.py
-"""
-import sys
-from pathlib import Path
+Deploy:    modal deploy modal_tribe.py          (run from backend/)
+Smoke test: modal run modal_tribe.py            (run from backend/)
 
+Prerequisites:
+  1. Create a HuggingFace token with LLaMA 3.2-3B access at hf.co/settings/tokens
+  2. Store it as a Modal secret: modal secret create huggingface HF_TOKEN=hf_...
+  3. Request LLaMA 3.2 access at hf.co/meta-llama/Llama-3.2-3B (free, auto-approved)
+"""
 import modal
 
 app = modal.App("nmd-tribe-scorer")
@@ -16,19 +18,13 @@ app = modal.App("nmd-tribe-scorer")
 # Modal Volume: weights persist across container restarts (~multi-GB, download once)
 model_cache = modal.Volume.from_name("tribe-model-cache", create_if_missing=True)
 
-# Mount local backend Python modules so roi.py / index.py / models.py are available
-backend_mount = modal.Mount.from_local_dir(
-    Path(__file__).parent,
-    remote_path="/backend",
-    condition=lambda path: (
-        path.suffix == ".py"
-        and not path.name.startswith("test_")
-        and path.name not in ("modal_tribe.py", "conftest.py")
-    ),
-)
+# HF token needed for gated LLaMA 3.2-3B (text encoder inside TRIBE v2)
+hf_secret = modal.Secret.from_name("huggingface")
 
+# Build image — code from GitHub, weights from HuggingFace at runtime
 image = (
     modal.Image.debian_slim(python_version="3.12")
+    .apt_install("git", "ffmpeg")  # ffmpeg required for TTS audio processing
     .pip_install(
         "numpy==2.2.1",
         "nilearn==0.11.1",
@@ -36,32 +32,46 @@ image = (
         "pydantic==2.10.4",
         "fastapi==0.115.6",
     )
-    .run_commands("pip install git+https://huggingface.co/facebook/tribev2")
+    # tribev2 Python package lives on GitHub, not HuggingFace
+    .run_commands(
+        "pip install git+https://github.com/facebookresearch/tribev2",
+        # spaCy NLP model required for word extraction — bake in to avoid runtime download
+        "python -m spacy download en_core_web_lg",
+    )
+    # Copy local backend modules into the image (roi, index, models, cache)
+    .add_local_python_source("roi", "index", "models", "cache")
 )
 
 
 @app.cls(
     image=image,
     gpu="A10G",
-    mounts=[backend_mount],
     volumes={"/cache": model_cache},
-    container_idle_timeout=1200,  # keep warm 20 min between requests
-    timeout=120,
+    secrets=[hf_secret],
+    scaledown_window=1200,  # keep warm 20 min between requests
+    # Whisper word extraction + TRIBE inference takes 2-4 min on cold text
+    timeout=600,
 )
 class TribeScorer:
     @modal.enter()
     def load(self):
         """Runs once per container — loads model + atlas into GPU memory."""
-        sys.path.insert(0, "/backend")
-
+        import os
         from tribev2 import TribeModel
         from roi import get_roi_vertex_indices
 
+        # Authenticate with HuggingFace for gated LLaMA 3.2 text encoder
+        hf_token = os.environ.get("HF_TOKEN")
+        if hf_token:
+            from huggingface_hub import login
+            login(token=hf_token, add_to_git_credential=False)
+
+        # /cache is the Modal Volume — weights survive container restarts
         self._model = TribeModel.from_pretrained(
             "facebook/tribev2",
             cache_folder="/cache",
         )
-        # Pre-load Destrieux atlas (downloads once, then cached in volume)
+        # Pre-load Destrieux atlas (cached in volume after first run)
         self._roi_idx = get_roi_vertex_indices()
 
     @modal.method()
@@ -95,13 +105,14 @@ class TribeScorer:
 
 @app.local_entrypoint()
 def main():
-    """Quick smoke test: modal run backend/modal_tribe.py"""
+    """Smoke test: modal run modal_tribe.py"""
     scorer = TribeScorer()
 
-    manipulative = "WARNING: Your account will be DELETED in 24 hours unless you act NOW!"
-    neutral = "The committee meets quarterly to review audited financial statements."
-
-    for text, label in [(manipulative, "manipulative"), (neutral, "neutral")]:
+    cases = [
+        ("WARNING: Your account will be DELETED in 24 hours unless you act NOW!", "manipulative"),
+        ("The committee meets quarterly to review audited financial statements.", "neutral"),
+    ]
+    for text, label in cases:
         result = scorer.score.remote(text)
         print(f"\n[{label}]")
         for k, v in result.items():

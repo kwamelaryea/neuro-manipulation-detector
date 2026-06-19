@@ -27,8 +27,9 @@ def test_score_text_passes_text_len_to_index(monkeypatch):
             dominant_technique="neutral", confidence="medium",
         )
 
+    import index
     with patch.object(scorer_tribe, "_run_tribe", return_value=fake_acts), \
-         patch.object(scorer_tribe, "compute_scores", side_effect=fake_compute):
+         patch.object(index, "compute_scores", side_effect=fake_compute):
         scorer_tribe.score_text("hello world")
     assert captured["text_len"] == len("hello world")
 

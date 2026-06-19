@@ -8,19 +8,17 @@ Tests mock _run_tribe() directly; the Modal path is not exercised in unit tests.
 """
 import os
 
-import numpy as np
-
-from index import compute_scores
 from models import AnalyzeResponse
-from roi import get_roi_vertex_indices, roi_means
 
 _USE_MODAL = os.getenv("NMD_USE_MODAL", "false").lower() == "true"
 
 _MODEL = None
 
 
-def _run_tribe(text: str) -> np.ndarray:
+def _run_tribe(text: str) -> "np.ndarray":
     """Local TRIBE v2 inference. Mocked in unit tests; real path needs GPU."""
+    import numpy as np  # noqa: PLC0415
+
     global _MODEL
     if _MODEL is None:
         # Lazy import — tribev2 not installed in Phase 1 / test envs
@@ -46,6 +44,11 @@ def score_text(text: str) -> AnalyzeResponse:
         scorer = TribeScorer()
         result = scorer.score.remote(text)
         return AnalyzeResponse(**result)
+
+    # Local path — needs tribev2, nilearn, GPU installed.
+    import numpy as np
+    from roi import get_roi_vertex_indices, roi_means
+    from index import compute_scores
 
     acts = _run_tribe(text)
     idx = get_roi_vertex_indices()

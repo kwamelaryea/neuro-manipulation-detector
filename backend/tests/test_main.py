@@ -26,7 +26,7 @@ def test_health_ok():
 
 
 def test_analyze_returns_contract_shape():
-    with patch.object(main, "score_text", return_value=_stub_response()) as m:
+    with patch.object(main, "_score_fast", return_value=_stub_response()) as m:
         r = client.post("/analyze", json={"text": "Only 2 left! Buy now!"})
     assert r.status_code == 200
     body = r.json()
@@ -36,8 +36,10 @@ def test_analyze_returns_contract_shape():
         "manipulation_index",
         "dominant_technique",
         "confidence",
+        "scorer",
     }
     assert body["dominant_technique"] == "urgency"
+    assert body["scorer"] == "llm"
     m.assert_called_once()
 
 
@@ -47,9 +49,8 @@ def test_analyze_rejects_empty_text():
 
 
 def test_analyze_uses_cache_on_second_call(tmp_path, monkeypatch):
-    # Point cache at a temp file and reset the singleton.
     monkeypatch.setattr(main, "_cache", main.AnalysisCache(disk_path=tmp_path / "c.json"))
-    with patch.object(main, "score_text", return_value=_stub_response()) as m:
+    with patch.object(main, "_score_fast", return_value=_stub_response()) as m:
         client.post("/analyze", json={"text": "cache this text"})
         client.post("/analyze", json={"text": "cache this text"})
     # Scorer called once; second hit served from cache.

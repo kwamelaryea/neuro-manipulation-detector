@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>NMD</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0D1117;
+      color: #E6EDF3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      min-width: 280px;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #161B22;
+      background: linear-gradient(135deg, #0D1117 0%, #11161E 100%);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #6D28D9, #14B8A6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .logo-text .name {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: #E6EDF3;
+    }
+    .logo-text .sub {
+      font-size: 9px;
+      color: #4B5563;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+    .settings-btn {
+      background: none; border: none;
+      color: #4B5563; cursor: pointer;
+      font-size: 15px; padding: 4px 6px;
+      border-radius: 5px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .settings-btn:hover { color: #94A3B8; background: #161B22; }
+
+    /* ── URL bar ─────────────────────────────────────────── */
+    .url-bar {
+      padding: 6px 16px;
+      font-size: 11px;
+      color: #4B5563;
+      background: #0A0D13;
+      border-bottom: 1px solid #161B22;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    /* ── Score card ──────────────────────────────────────── */
+    .score-card {
+      padding: 14px 16px;
+      border-bottom: 1px solid #161B22;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #4B5563;
+    }
+    .scorer-tag {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #161B22;
+      border: 1px solid #21262D;
+    }
+    .scorer-tag.llm { color: #6D28D9; border-color: #3D1F73; }
+    .scorer-tag.tribe { color: #14B8A6; border-color: #0E6B63; }
+
+    /* MI number */
+    .mi-display {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .mi-val {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .mi-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .mi-denom {
+      font-size: 14px;
+      color: #4B5563;
+      font-weight: 500;
+    }
+    .mi-tech {
+      font-size: 11px;
+      color: #94A3B8;
+      text-transform: capitalize;
+      font-weight: 500;
+    }
+
+    /* MI progress bar */
+    .mi-bar-wrap {
+      height: 3px;
+      background: #161B22;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .mi-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      min-width: 4px;
+      transition: width 0.5s ease;
+    }
+
+    /* Limbic / PFC bio bars */
+    .bio-bars { margin-bottom: 10px; }
+    .bio-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+    .bio-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      width: 44px;
+      flex-shrink: 0;
+    }
+    .bio-track {
+      flex: 1;
+      height: 5px;
+      background: #161B22;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bio-fill {
+      height: 100%;
+      border-radius: 3px;
+      min-width: 3px;
+      transition: width 0.5s ease;
+      opacity: 0.85;
+    }
+    .bio-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94A3B8;
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Confidence + Technique pills */
+    .pill-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 10px;
+      padding: 2px 8px;
+      background: #161B22;
+      border: 1px solid #21262D;
+      border-radius: 4px;
+      color: #6B7280;
+      text-transform: capitalize;
+    }
+    .pill-conf-high   { color: #16A34A; border-color: #14532D; }
+    .pill-conf-medium { color: #D97706; border-color: #78350F; }
+    .pill-conf-low    { color: #6B7280; }
+
+    /* ── Waiting / empty ────────────────────────────────── */
+    .waiting {
+      padding: 36px 16px;
+      text-align: center;
+      color: #30363D;
+    }
+    .waiting-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+    .waiting-text { font-size: 12px; line-height: 1.6; }
+
+    /* ── Deep scan section ──────────────────────────────── */
+    .deep-section {
+      padding: 12px 16px;
+      border-bottom: 1px solid #161B22;
+    }
+    .deep-btn {
+      width: 100%;
+      padding: 9px 14px;
+      background: transparent;
+      border: 1px solid #21262D;
+      border-radius: 8px;
+      color: #6B7280;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      font-family: inherit;
+    }
+    .deep-btn:hover:not(:disabled) {
+      border-color: #14B8A6;
+      color: #14B8A6;
+      background: #0E1F1E;
+    }
+    .deep-btn:disabled { opacity: 0.35; cursor: default; }
+    .deep-btn .hint { font-size: 10px; color: #374151; }
+    .deep-btn:hover:not(:disabled) .hint { color: #0D6E66; }
+
+    .deep-scanning {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      color: #14B8A6;
+      font-size: 12px;
+    }
+    .pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #14B8A6;
+      flex-shrink: 0;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.3; transform:scale(0.8); } }
+
+    /* ── Settings section ───────────────────────────────── */
+    .settings-section {
+      padding: 14px 16px;
+      display: none;
+      border-bottom: 1px solid #161B22;
+    }
+    .settings-section.open { display: block; }
+    .settings-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: #4B5563;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+    .field-label {
+      display: block;
+      font-size: 11px;
+      color: #6B7280;
+      margin-bottom: 4px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 7px 10px;
+      background: #161B22;
+      border: 1px solid #21262D;
+      border-radius: 6px;
+      color: #E6EDF3;
+      font-size: 12px;
+      margin-bottom: 10px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { outline: none; border-color: #6D28D9; }
+    .toggle-row {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 12px;
+    }
+    .toggle-label { font-size: 12px; color: #94A3B8; }
+    input[type="checkbox"] { accent-color: #6D28D9; width: 15px; height: 15px; cursor: pointer; }
+    .save-btn {
+      width: 100%; padding: 8px;
+      background: #6D28D9; border: none;
+      border-radius: 7px; color: #fff;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .save-btn:hover { background: #7C3AED; }
+    .save-status { font-size: 11px; color: #16A34A; margin-top: 6px; min-height: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text">
+        <div class="name">NMD</div>
+        <div class="sub">Neuro Manipulation Detector</div>
+      </div>
+    </div>
+    <button class="settings-btn" id="settingsToggle" title="Settings">⚙</button>
+  </div>
+
+  <div class="url-bar" id="urlBar">No page scanned yet</div>
+
+  <div id="fastResult">
+    <div class="waiting">
+      <div class="waiting-icon">🧠</div>
+      <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
+    </div>
+  </div>
+
+  <div class="deep-section" id="deepSection" style="display:none">
+    <div id="deepTrigger">
+      <button class="deep-btn" id="deepBtn">
+        🔬 Deep Scan
+        <span class="hint">TRIBE v2 · ~4 min</span>
+      </button>
+    </div>
+    <div id="deepResult"></div>
+  </div>
+
+  <div class="settings-section" id="settingsSection">
+    <div class="settings-title">Settings</div>
+    <label class="field-label" for="backendUrl">Backend URL</label>
+    <input type="text" id="backendUrl" placeholder="http://localhost:8000" />
+    <div class="toggle-row">
+      <span class="toggle-label">Enabled</span>
+      <input type="checkbox" id="enabled" />
+    </div>
+    <button class="save-btn" id="saveBtn">Save</button>
+    <div class="save-status" id="saveStatus"></div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ const MAX_CHARS = 4000;        // cap payload size
 const DEBOUNCE_MS = 600;
 
 let debounceTimer = null;
+let _lastText = "";            // stored for Deep Scan button
 
 // --- visibility helpers ---------------------------------------------------
 
@@ -47,6 +48,7 @@ function normalize(text) {
 function analyzeNow() {
   const text = extractVisibleText();
   if (text.length < MIN_CHARS) return;
+  _lastText = text;
 
   const key = normalize(text);
   if (SEEN.has(key)) return;
@@ -57,7 +59,7 @@ function analyzeNow() {
     (resp) => {
       if (chrome.runtime.lastError) return; // worker asleep / no listener
       if (!resp || !resp.ok) return;
-      renderBadge(resp.data);
+      renderBadge(resp.data, null);
     }
   );
 }
@@ -73,23 +75,34 @@ window.addEventListener("load", scheduleAnalyze);
 // --- overlay --------------------------------------------------------------
 
 function badgeColor(index) {
-  if (index >= 7) return "#DC2626"; // red — high manipulation
-  if (index >= 4) return "#D97706"; // amber — moderate
-  return "#16A34A";                 // green — low
+  if (index >= 7) return "#DC2626";
+  if (index >= 4) return "#D97706";
+  return "#16A34A";
 }
 
-function renderBadge(data) {
+function renderBadge(data, scorerLabel) {
   let badge = document.getElementById("nmd-badge");
   if (!badge) {
     badge = document.createElement("div");
     badge.id = "nmd-badge";
     document.body.appendChild(badge);
-    badge.addEventListener("click", () => {
+    badge.addEventListener("click", (e) => {
+      // Don't toggle when clicking the deep scan button.
+      if (e.target.classList.contains("nmd-deep-btn")) return;
       badge.classList.toggle("nmd-expanded");
     });
   }
+  badge.classList.remove("nmd-scanning");
   const color = badgeColor(data.manipulation_index);
   badge.style.setProperty("--nmd-accent", color);
+
+  const sourceRow = scorerLabel
+    ? `<div class="nmd-row nmd-source-row"><span>Source</span><span class="nmd-tribe-tag">${scorerLabel}</span></div>`
+    : "";
+  const deepBtn = scorerLabel === "TRIBE v2"
+    ? "" // already ran deep scan
+    : `<button class="nmd-deep-btn" title="Run TRIBE v2 neural inference (~4 min)">🔬 Deep Scan</button>`;
+
   badge.innerHTML = `
     <div class="nmd-row nmd-headline">
       <span class="nmd-dot"></span>
@@ -101,6 +114,50 @@ function renderBadge(data) {
       <div class="nmd-row"><span>PFC</span><span>${(data.pfc_score * 100).toFixed(0)}%</span></div>
       <div class="nmd-row"><span>Technique</span><span>${data.dominant_technique}</span></div>
       <div class="nmd-row"><span>Confidence</span><span>${data.confidence}</span></div>
+      ${sourceRow}
+      ${deepBtn}
     </div>
   `;
+
+  const btn = badge.querySelector(".nmd-deep-btn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      if (!_lastText) return;
+      badge.classList.add("nmd-scanning");
+      badge.innerHTML = `
+        <div class="nmd-row nmd-headline">
+          <span class="nmd-dot"></span>
+          <span class="nmd-mi">…</span>
+          <span class="nmd-label">TRIBE v2 scanning</span>
+        </div>
+      `;
+      chrome.runtime.sendMessage({ type: "DEEP_ANALYZE", text: _lastText, url: location.href });
+    });
+  }
 }
+
+// --- messages from background / side panel --------------------------------
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "GET_TEXT") {
+    sendResponse({ text: _lastText || extractVisibleText() });
+    return true;
+  }
+  if (msg.type === "DEEP_SCANNING") {
+    const badge = document.getElementById("nmd-badge");
+    if (badge) badge.classList.add("nmd-scanning");
+  }
+  if (msg.type === "DEEP_RESULT") {
+    if (msg.ok && msg.data) {
+      renderBadge(msg.data, "TRIBE v2");
+      const badge = document.getElementById("nmd-badge");
+      if (badge) badge.classList.add("nmd-expanded");
+    } else {
+      const badge = document.getElementById("nmd-badge");
+      if (badge) {
+        badge.classList.remove("nmd-scanning");
+        badge.innerHTML += `<div style="color:#DC2626;font-size:11px;margin-top:6px">Deep scan failed: ${msg.error || "unknown"}</div>`;
+      }
+    }
+  }
+});
