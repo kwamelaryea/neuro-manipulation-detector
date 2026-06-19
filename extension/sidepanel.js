@@ -1,5 +1,21 @@
 const DEFAULT_BACKEND = "http://localhost:8000";
 
+// ── Plain-English label maps ───────────────────────────────────────────────
+
+const TECHNIQUE_LABELS = {
+  fear:           "Fear-based messaging",
+  urgency:        "False urgency",
+  tribal_identity:"Us vs. Them framing",
+  reward_loop:    "Craving / reward loop",
+  neutral:        "No manipulation detected",
+};
+
+const MI_LABEL = (index) => {
+  if (index >= 7) return "Highly manipulative";
+  if (index >= 4) return "Moderately manipulative";
+  return "Not manipulative";
+};
+
 // ── State ──────────────────────────────────────────────────────────────────
 
 let _currentUrl = "";
@@ -23,6 +39,13 @@ function scoreCardHTML(data, label, scorerTag) {
     ? `<span class="scorer-tag ${tagClass}">${scorerTag}</span>`
     : "";
   const confClass = `pill-conf-${data.confidence}`;
+  const technique = TECHNIQUE_LABELS[data.dominant_technique] || data.dominant_technique;
+  const verdict = MI_LABEL(data.manipulation_index);
+  const confDesc = data.confidence === "high"
+    ? "High confidence"
+    : data.confidence === "medium"
+    ? "Medium confidence"
+    : "Low confidence";
   return `
     <div class="score-card">
       <div class="card-header">
@@ -33,22 +56,29 @@ function scoreCardHTML(data, label, scorerTag) {
         <span class="mi-val" style="color:${color}">${data.manipulation_index.toFixed(1)}</span>
         <div class="mi-meta">
           <span class="mi-denom">/ 10</span>
-          <span class="mi-tech">${data.dominant_technique}</span>
+          <span class="mi-verdict" style="color:${color}">${verdict}</span>
         </div>
       </div>
       <div class="mi-bar-wrap">
         <div class="mi-bar-fill" style="width:${miPct}%;background:${color}"></div>
       </div>
+      <div class="bio-section-label">Brain signal breakdown</div>
       <div class="bio-bars">
-        <div class="bio-bar-row">
-          <span class="bio-label" style="color:#6D28D9">Limbic</span>
+        <div class="bio-bar-row" title="Predicted activity in emotional brain regions. High = content is designed to trigger feelings over rational thought.">
+          <div class="bio-label-wrap">
+            <span class="bio-label-main">Emotional pull</span>
+            <span class="bio-label-sub">limbic system</span>
+          </div>
           <div class="bio-track">
-            <div class="bio-fill" style="width:${limbicPct}%;background:#6D28D9"></div>
+            <div class="bio-fill" style="width:${limbicPct}%;background:#8B5CF6"></div>
           </div>
           <span class="bio-val">${(data.limbic_score * 100).toFixed(0)}%</span>
         </div>
-        <div class="bio-bar-row">
-          <span class="bio-label" style="color:#14B8A6">PFC</span>
+        <div class="bio-bar-row" title="Predicted activity in the rational brain. High = content engages your critical thinking rather than bypassing it.">
+          <div class="bio-label-wrap">
+            <span class="bio-label-main">Rational guard</span>
+            <span class="bio-label-sub">prefrontal cortex</span>
+          </div>
           <div class="bio-track">
             <div class="bio-fill" style="width:${pfcPct}%;background:#14B8A6"></div>
           </div>
@@ -56,8 +86,8 @@ function scoreCardHTML(data, label, scorerTag) {
         </div>
       </div>
       <div class="pill-row">
-        <span class="pill ${confClass}">${data.confidence} confidence</span>
-        <span class="pill">${data.dominant_technique}</span>
+        <span class="pill ${confClass}">${confDesc}</span>
+        <span class="pill pill-technique">${technique}</span>
       </div>
     </div>
   `;

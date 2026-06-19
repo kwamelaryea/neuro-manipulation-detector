@@ -64,6 +64,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Service workers can be killed by Chrome during a 4-min fetch, so we
     // delegate the actual HTTP call to sidepanel.js instead.
     const tabId = sender.tab?.id;
+    // Open the side panel so the user can watch progress (user gesture chain preserved).
+    if (tabId) chrome.sidePanel.open({ tabId }).catch(() => {});
     if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_SCANNING" }).catch(() => {});
     // Store request so side panel can pick it up if opened after the click.
     chrome.storage.session.set({

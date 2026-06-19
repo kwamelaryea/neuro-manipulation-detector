@@ -39,8 +39,7 @@
 
 #nmd-badge .nmd-headline .nmd-label {
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 500;
   color: #94A3B8;
 }
 

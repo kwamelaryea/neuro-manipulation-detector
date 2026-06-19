@@ -88,7 +88,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: #4B5563;
+      color: #94A3B8;
     }
     .scorer-tag {
       font-size: 9px;
@@ -126,11 +126,9 @@
       color: #4B5563;
       font-weight: 500;
     }
-    .mi-tech {
+    .mi-verdict {
       font-size: 11px;
-      color: #94A3B8;
-      text-transform: capitalize;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     /* MI progress bar */
@@ -148,21 +146,39 @@
       transition: width 0.5s ease;
     }
 
-    /* Limbic / PFC bio bars */
+    /* Brain signal section */
+    .bio-section-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4B5563;
+      margin-bottom: 8px;
+    }
     .bio-bars { margin-bottom: 10px; }
     .bio-bar-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 7px;
+      margin-bottom: 9px;
+      cursor: default;
     }
-    .bio-label {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      width: 44px;
+    .bio-label-wrap {
+      width: 84px;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .bio-label-main {
+      font-size: 11px;
+      font-weight: 600;
+      color: #C9D1D9;
+    }
+    .bio-label-sub {
+      font-size: 9px;
+      color: #4B5563;
+      font-style: italic;
     }
     .bio-track {
       flex: 1;
@@ -200,12 +216,12 @@
       background: #161B22;
       border: 1px solid #21262D;
       border-radius: 4px;
-      color: #6B7280;
-      text-transform: capitalize;
+      color: #94A3B8;
     }
-    .pill-conf-high   { color: #16A34A; border-color: #14532D; }
-    .pill-conf-medium { color: #D97706; border-color: #78350F; }
-    .pill-conf-low    { color: #6B7280; }
+    .pill-conf-high   { color: #4ADE80; border-color: #14532D; }
+    .pill-conf-medium { color: #FCD34D; border-color: #78350F; }
+    .pill-conf-low    { color: #94A3B8; }
+    .pill-technique   { color: #E2E8F0; }
 
     /* ── Waiting / empty ────────────────────────────────── */
     .waiting {

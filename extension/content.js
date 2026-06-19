@@ -74,6 +74,20 @@ window.addEventListener("load", scheduleAnalyze);
 
 // --- overlay --------------------------------------------------------------
 
+const BADGE_TECHNIQUES = {
+  fear:           "Fear messaging",
+  urgency:        "False urgency",
+  tribal_identity:"Us vs. Them",
+  reward_loop:    "Reward loop",
+  neutral:        "Not manipulative",
+};
+
+const BADGE_VERDICT = (index) => {
+  if (index >= 7) return "High manipulation";
+  if (index >= 4) return "Some manipulation";
+  return "Not manipulative";
+};
+
 function badgeColor(index) {
   if (index >= 7) return "#DC2626";
   if (index >= 4) return "#D97706";
@@ -96,23 +110,25 @@ function renderBadge(data, scorerLabel) {
   const color = badgeColor(data.manipulation_index);
   badge.style.setProperty("--nmd-accent", color);
 
+  const technique = BADGE_TECHNIQUES[data.dominant_technique] || data.dominant_technique;
+  const verdict = BADGE_VERDICT(data.manipulation_index);
   const sourceRow = scorerLabel
-    ? `<div class="nmd-row nmd-source-row"><span>Source</span><span class="nmd-tribe-tag">${scorerLabel}</span></div>`
+    ? `<div class="nmd-row nmd-source-row"><span>Scorer</span><span class="nmd-tribe-tag">${scorerLabel}</span></div>`
     : "";
   const deepBtn = scorerLabel === "TRIBE v2"
-    ? "" // already ran deep scan
-    : `<button class="nmd-deep-btn" title="Run TRIBE v2 neural inference (~4 min)">🔬 Deep Scan</button>`;
+    ? ""
+    : `<button class="nmd-deep-btn" title="Run deep brain scan (~4 min) — opens side panel">🔬 Deep Scan</button>`;
 
   badge.innerHTML = `
     <div class="nmd-row nmd-headline">
       <span class="nmd-dot"></span>
       <span class="nmd-mi">${data.manipulation_index.toFixed(1)}</span>
-      <span class="nmd-label">manipulation</span>
+      <span class="nmd-label">${verdict}</span>
     </div>
     <div class="nmd-detail">
-      <div class="nmd-row"><span>Limbic</span><span>${(data.limbic_score * 100).toFixed(0)}%</span></div>
-      <div class="nmd-row"><span>PFC</span><span>${(data.pfc_score * 100).toFixed(0)}%</span></div>
-      <div class="nmd-row"><span>Technique</span><span>${data.dominant_technique}</span></div>
+      <div class="nmd-row"><span>Emotional pull</span><span>${(data.limbic_score * 100).toFixed(0)}%</span></div>
+      <div class="nmd-row"><span>Rational guard</span><span>${(data.pfc_score * 100).toFixed(0)}%</span></div>
+      <div class="nmd-row"><span>Tactic</span><span>${technique}</span></div>
       <div class="nmd-row"><span>Confidence</span><span>${data.confidence}</span></div>
       ${sourceRow}
       ${deepBtn}
