@@ -153,7 +153,8 @@ async function runDeepScan(text, url, tabId) {
   ]);
 
   if (!useLocal) {
-    showDeepError("TRIBE v2 neural scan requires the local backend. Enable "Use local backend" in Settings, then run the Python server.");
+    _deepRunning = false;
+    showDeepError('TRIBE v2 requires local backend. Enable "Use local backend" in Settings, then start the Python server.');
     chrome.storage.session.remove("pendingDeepScan");
     return;
   }
