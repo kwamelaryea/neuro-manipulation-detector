@@ -105,7 +105,7 @@ function showDeepScanning() {
   document.getElementById("deepTrigger").innerHTML = `
     <div class="deep-scanning">
       <div class="pulse"></div>
-      TRIBE v2 neural inference running…
+      Deep scan running…
     </div>
   `;
 }

@@ -40,7 +40,11 @@ def _run_tribe(text: str) -> "np.ndarray":
 
 def score_text(text: str) -> AnalyzeResponse:
     if _USE_MODAL:
-        from modal_tribe import TribeScorer
+        # Modal 1.x: use Cls.from_name to look up the deployed app instance.
+        # Importing TribeScorer directly from modal_tribe.py gives an unhydrated
+        # class that can't call .remote() outside of a Modal run context.
+        import modal
+        TribeScorer = modal.Cls.from_name("nmd-tribe-scorer", "TribeScorer")
         scorer = TribeScorer()
         result = scorer.score.remote(text)
         return AnalyzeResponse(**result)

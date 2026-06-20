@@ -42,8 +42,17 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
         return cached
 
     if req.mode == "deep":
-        result = _score_deep(req.text)
-        result.scorer = "tribe"
+        try:
+            result = _score_deep(req.text)
+            result.scorer = "tribe"
+        except Exception as exc:
+            # TRIBE v2 unavailable (tribev2 not installed / Modal not configured).
+            # Fall back to LLM and surface the correct scorer label so the
+            # extension can show "LLM fallback" instead of "TRIBE v2".
+            import logging
+            logging.warning("TRIBE v2 failed (%s), falling back to LLM scorer", exc)
+            result = _score_fast(req.text)
+            result.scorer = "llm"
     else:
         result = _score_fast(req.text)
         result.scorer = "llm"
