@@ -13,7 +13,12 @@
       font-size: 13px;
       line-height: 1.5;
       min-width: 280px;
+      overflow-x: hidden;
     }
+
+    /* ── View system ─────────────────────────────────────── */
+    .view { display: none; }
+    .view.active { display: block; }
 
     /* ── Header ─────────────────────────────────────────── */
     .header {
@@ -23,6 +28,7 @@
       padding: 12px 16px;
       border-bottom: 1px solid #161B22;
       background: linear-gradient(135deg, #0D1117 0%, #11161E 100%);
+      position: sticky; top: 0; z-index: 10;
     }
     .logo {
       display: flex;
@@ -34,7 +40,6 @@
       border-radius: 8px;
       overflow: hidden;
       flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
     }
     .logo-icon img {
       width: 100%; height: 100%;
@@ -55,14 +60,38 @@
       letter-spacing: 0.1em;
       font-weight: 500;
     }
+
+    /* Settings icon — SVG-based, visible */
     .settings-btn {
-      background: none; border: none;
-      color: #4B5563; cursor: pointer;
-      font-size: 15px; padding: 4px 6px;
-      border-radius: 5px;
-      transition: color 0.15s, background 0.15s;
+      background: #1C2128;
+      border: 1px solid #30363D;
+      border-radius: 7px;
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+      padding: 0;
     }
-    .settings-btn:hover { color: #94A3B8; background: #161B22; }
+    .settings-btn:hover { background: #21262D; border-color: #6D28D9; }
+    .settings-btn svg { display: block; }
+
+    /* Back button (settings view) */
+    .back-btn {
+      background: none;
+      border: none;
+      color: #94A3B8;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: #E6EDF3; }
+    .back-btn svg { flex-shrink: 0; }
 
     /* ── URL bar ─────────────────────────────────────────── */
     .url-bar {
@@ -104,10 +133,9 @@
       background: #161B22;
       border: 1px solid #21262D;
     }
-    .scorer-tag.llm { color: #6D28D9; border-color: #3D1F73; }
+    .scorer-tag.llm   { color: #6D28D9; border-color: #3D1F73; }
     .scorer-tag.tribe { color: #14B8A6; border-color: #0E6B63; }
 
-    /* MI number */
     .mi-display {
       display: flex;
       align-items: baseline;
@@ -121,22 +149,10 @@
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.02em;
     }
-    .mi-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .mi-denom {
-      font-size: 14px;
-      color: #4B5563;
-      font-weight: 500;
-    }
-    .mi-verdict {
-      font-size: 11px;
-      font-weight: 600;
-    }
+    .mi-meta { display: flex; flex-direction: column; gap: 2px; }
+    .mi-denom { font-size: 14px; color: #4B5563; font-weight: 500; }
+    .mi-verdict { font-size: 11px; font-weight: 600; }
 
-    /* MI progress bar */
     .mi-bar-wrap {
       height: 3px;
       background: #161B22;
@@ -151,7 +167,6 @@
       transition: width 0.5s ease;
     }
 
-    /* Brain signal section */
     .bio-section-label {
       font-size: 9px;
       font-weight: 600;
@@ -166,7 +181,6 @@
       align-items: center;
       gap: 8px;
       margin-bottom: 9px;
-      cursor: default;
     }
     .bio-label-wrap {
       width: 84px;
@@ -175,16 +189,8 @@
       flex-direction: column;
       gap: 1px;
     }
-    .bio-label-main {
-      font-size: 11px;
-      font-weight: 600;
-      color: #C9D1D9;
-    }
-    .bio-label-sub {
-      font-size: 9px;
-      color: #6B7280;
-      font-style: italic;
-    }
+    .bio-label-main { font-size: 11px; font-weight: 600; color: #C9D1D9; }
+    .bio-label-sub  { font-size: 9px; color: #6B7280; font-style: italic; }
     .bio-track {
       flex: 1;
       height: 5px;
@@ -209,12 +215,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Confidence + Technique pills */
-    .pill-row {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-    }
+    .pill-row { display: flex; gap: 5px; flex-wrap: wrap; }
     .pill {
       font-size: 10px;
       padding: 2px 8px;
@@ -229,19 +230,12 @@
     .pill-technique   { color: #E2E8F0; }
 
     /* ── Waiting / empty ────────────────────────────────── */
-    .waiting {
-      padding: 36px 16px;
-      text-align: center;
-      color: #30363D;
-    }
+    .waiting { padding: 36px 16px; text-align: center; color: #30363D; }
     .waiting-icon { width: 40px; height: 40px; margin: 0 auto 8px; opacity: 0.4; }
-    .waiting-text { font-size: 12px; line-height: 1.6; }
+    .waiting-text { font-size: 12px; line-height: 1.6; color: #4B5563; }
 
     /* ── Deep scan section ──────────────────────────────── */
-    .deep-section {
-      padding: 12px 16px;
-      border-bottom: 1px solid #161B22;
-    }
+    .deep-section { padding: 12px 16px; border-bottom: 1px solid #161B22; }
     .deep-btn {
       width: 100%;
       padding: 9px 14px;
@@ -261,7 +255,7 @@
     .deep-btn:hover:not(:disabled) {
       border-color: #14B8A6;
       color: #14B8A6;
-      background: #0E1F1E;
+      background: #0A1F1E;
     }
     .deep-btn:disabled { opacity: 0.35; cursor: default; }
     .deep-btn .hint { font-size: 10px; color: #374151; }
@@ -282,109 +276,279 @@
       flex-shrink: 0;
       animation: pulse 1.2s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.3; transform:scale(0.8); } }
-
-    /* ── Settings section ───────────────────────────────── */
-    .settings-section {
-      padding: 14px 16px;
-      display: none;
-      border-bottom: 1px solid #161B22;
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.3; transform:scale(0.8); }
     }
-    .settings-section.open { display: block; }
-    .settings-title {
+
+    /* ── Settings view ──────────────────────────────────── */
+    #settingsView {
+      min-height: 100vh;
+    }
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #161B22;
+      background: #0D1117;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .settings-title-lg {
+      font-size: 13px;
+      font-weight: 700;
+      color: #E6EDF3;
+    }
+
+    .settings-body { padding: 20px 16px; }
+
+    .settings-group {
+      margin-bottom: 24px;
+    }
+    .settings-group-label {
       font-size: 9px;
       font-weight: 700;
-      color: #4B5563;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      margin-bottom: 12px;
+      color: #4B5563;
+      margin-bottom: 10px;
     }
     .field-label {
       display: block;
       font-size: 11px;
-      color: #6B7280;
-      margin-bottom: 4px;
+      font-weight: 500;
+      color: #94A3B8;
+      margin-bottom: 6px;
     }
+    .field-hint {
+      font-size: 10px;
+      color: #4B5563;
+      margin-top: -4px;
+      margin-bottom: 10px;
+    }
+    input[type="password"],
     input[type="text"] {
       width: 100%;
-      padding: 7px 10px;
+      padding: 9px 12px;
       background: #161B22;
-      border: 1px solid #21262D;
-      border-radius: 6px;
+      border: 1px solid #30363D;
+      border-radius: 8px;
       color: #E6EDF3;
       font-size: 12px;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       font-family: "SF Mono", "Fira Code", monospace;
       transition: border-color 0.15s;
     }
+    input[type="password"]:focus,
     input[type="text"]:focus { outline: none; border-color: #6D28D9; }
+
     .toggle-row {
-      display: flex; align-items: center;
-      justify-content: space-between; margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #161B22;
     }
-    .toggle-label { font-size: 12px; color: #94A3B8; }
-    input[type="checkbox"] { accent-color: #6D28D9; width: 15px; height: 15px; cursor: pointer; }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info { flex: 1; }
+    .toggle-label { font-size: 12px; color: #C9D1D9; font-weight: 500; }
+    .toggle-desc  { font-size: 10px; color: #4B5563; margin-top: 1px; }
+    input[type="checkbox"] { accent-color: #6D28D9; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+
     .save-btn {
-      width: 100%; padding: 8px;
-      background: #6D28D9; border: none;
-      border-radius: 7px; color: #fff;
-      font-size: 12px; font-weight: 600;
-      cursor: pointer; font-family: inherit;
+      width: 100%;
+      padding: 11px;
+      background: #6D28D9;
+      border: none;
+      border-radius: 9px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
       transition: background 0.15s;
+      margin-top: 8px;
     }
     .save-btn:hover { background: #7C3AED; }
-    .save-status { font-size: 11px; color: #16A34A; margin-top: 6px; min-height: 14px; }
+
+    /* Post-save status banner */
+    .save-status {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      background: #0A1F0E;
+      border: 1px solid #14532D;
+      border-radius: 8px;
+    }
+    .save-status.visible { display: block; }
+    .save-status-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4ADE80;
+      margin-bottom: 4px;
+    }
+    .save-status-body {
+      font-size: 10px;
+      color: #6B7280;
+      line-height: 1.5;
+    }
+    .save-status-body a {
+      color: #14B8A6;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .save-status-body a:hover { text-decoration: underline; }
+
+    /* Key display */
+    .key-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 6px;
+    }
+    .key-display span {
+      flex: 1;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 11px;
+      color: #6B7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .key-display.has-key span { color: #4ADE80; }
+    .key-display-status {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+    }
+    .key-display.has-key .key-display-status { background: #4ADE80; }
+
+    .get-key-link {
+      font-size: 10px;
+      color: #6D28D9;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .get-key-link:hover { color: #8B5CF6; text-decoration: underline; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="logo">
-      <div class="logo-icon"><img src="icons/icon32.png" alt="NMD" /></div>
-      <div class="logo-text">
-        <div class="name">ZDrive Neuro Lens</div>
-        <div class="sub">Neuro Manipulation Detector</div>
+  <!-- ── Main view ──────────────────────────────────────────── -->
+  <div id="mainView" class="view active">
+
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon"><img src="icons/icon32.png" alt="NMD" /></div>
+        <div class="logo-text">
+          <div class="name">ZDrive Neuro Lens</div>
+          <div class="sub">Neuro Manipulation Detector</div>
+        </div>
       </div>
-    </div>
-    <button class="settings-btn" id="settingsToggle" title="Settings">⚙</button>
-  </div>
-
-  <div class="url-bar" id="urlBar">No page scanned yet</div>
-
-  <div id="fastResult">
-    <div class="waiting">
-      <img class="waiting-icon" src="icons/icon32.png" alt="" />
-      <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
-    </div>
-  </div>
-
-  <div class="deep-section" id="deepSection" style="display:none">
-    <div id="deepTrigger">
-      <button class="deep-btn" id="deepBtn">
-        🔬 Deep Scan
-        <span class="hint">TRIBE v2 · ~4 min</span>
+      <button class="settings-btn" id="settingsToggle" title="Settings">
+        <!-- Gear SVG — crisp and readable at small size -->
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M7.5 5.25a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5ZM6 7.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
+            fill="#94A3B8"/>
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M6.11 1a.75.75 0 0 0-.737.61l-.22 1.21a5.55 5.55 0 0 0-.933.539l-1.16-.427a.75.75 0 0 0-.9.342L1.41 4.726a.75.75 0 0 0 .173.94l.937.78a5.6 5.6 0 0 0 0 1.108l-.937.78a.75.75 0 0 0-.173.94l.75 1.452a.75.75 0 0 0 .9.342l1.16-.427c.29.204.603.383.933.539l.22 1.21A.75.75 0 0 0 6.11 13h2.78a.75.75 0 0 0 .737-.61l.22-1.21c.33-.156.643-.335.933-.539l1.16.427a.75.75 0 0 0 .9-.342l.75-1.452a.75.75 0 0 0-.173-.94l-.937-.78a5.6 5.6 0 0 0 0-1.108l.937-.78a.75.75 0 0 0 .173-.94L13.64 3.274a.75.75 0 0 0-.9-.342l-1.16.427a5.55 5.55 0 0 0-.933-.539l-.22-1.21A.75.75 0 0 0 8.89 1H6.11Zm-.956 2.437.186-1.187h2.32l.186 1.187.29.12c.38.16.73.37 1.04.62l.24.194 1.17-.43.585.566-.58.486-.586-.486.586.486.16.16-.793 1.535-.16-.16L9 6.086l-.236.09a4.8 4.8 0 0 1-.528.16L7.5 6.44l-.736.115a4.8 4.8 0 0 1-.528-.16L6 6.086l-1.21.904-.793-1.535.16-.16.586.486-.586-.486.16-.16.586.566-1.17.43-.24-.194a4.8 4.8 0 0 1 1.04-.62l.29-.12Z"
+            fill="#94A3B8"/>
+        </svg>
       </button>
     </div>
-    <div id="deepResult"></div>
-  </div>
 
-  <div class="settings-section" id="settingsSection">
-    <div class="settings-title">Settings</div>
-    <label class="field-label" for="zdriveApiKey">ZDrive API Key</label>
-    <input type="password" id="zdriveApiKey" placeholder="zdrive_••••••••" autocomplete="off" />
-    <div class="toggle-row">
-      <span class="toggle-label">Use local backend (dev)</span>
-      <input type="checkbox" id="useLocal" />
+    <div class="url-bar" id="urlBar">No page scanned yet</div>
+
+    <div id="fastResult">
+      <div class="waiting">
+        <img class="waiting-icon" src="icons/icon32.png" alt="" />
+        <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
+      </div>
     </div>
-    <label class="field-label" for="backendUrl" id="backendUrlLabel" style="display:none">Custom backend URL</label>
-    <input type="text" id="backendUrl" placeholder="https://zdrive-neuro-lens.kwame-laryea.workers.dev" style="display:none" />
-    <div class="toggle-row">
-      <span class="toggle-label">Enabled</span>
-      <input type="checkbox" id="enabled" />
+
+    <div class="deep-section" id="deepSection" style="display:none">
+      <div id="deepTrigger">
+        <button class="deep-btn" id="deepBtn">
+          🔬 Deep Scan
+          <span class="hint">TRIBE v2 · ~4 min</span>
+        </button>
+      </div>
+      <div id="deepResult"></div>
     </div>
-    <button class="save-btn" id="saveBtn">Save</button>
-    <div class="save-status" id="saveStatus"></div>
-  </div>
+
+  </div><!-- /mainView -->
+
+  <!-- ── Settings view ──────────────────────────────────────── -->
+  <div id="settingsView" class="view">
+
+    <div class="settings-header">
+      <button class="back-btn" id="backBtn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7l5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back
+      </button>
+      <span class="settings-title-lg">Settings</span>
+      <div style="width:44px"></div><!-- spacer to center title -->
+    </div>
+
+    <div class="settings-body">
+
+      <!-- API Key group -->
+      <div class="settings-group">
+        <div class="settings-group-label">ZDrive API Key</div>
+        <div class="key-display" id="keyDisplay">
+          <div class="key-display-status"></div>
+          <span id="keyDisplayText">No key configured</span>
+        </div>
+        <a class="get-key-link" href="https://zdrive.io" target="_blank">Get your key at zdrive.io →</a>
+        <label class="field-label" for="zdriveApiKey">Enter or update key</label>
+        <input type="password" id="zdriveApiKey" placeholder="znl_••••••••••••••••" autocomplete="off" />
+        <div class="field-hint">Scans are charged at 1 ZDrive credit each.</div>
+      </div>
+
+      <!-- Behaviour group -->
+      <div class="settings-group">
+        <div class="settings-group-label">Behaviour</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Enabled</div>
+            <div class="toggle-desc">Scan pages automatically on scroll</div>
+          </div>
+          <input type="checkbox" id="enabled" />
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Use local backend</div>
+            <div class="toggle-desc">Dev only — points to localhost:8000</div>
+          </div>
+          <input type="checkbox" id="useLocal" />
+        </div>
+      </div>
+
+      <!-- Custom URL (only when local mode on) -->
+      <div class="settings-group" id="customUrlGroup" style="display:none">
+        <div class="settings-group-label">Custom Backend URL</div>
+        <input type="text" id="backendUrl" placeholder="http://localhost:8000" />
+      </div>
+
+      <button class="save-btn" id="saveBtn">Save settings</button>
+
+      <div class="save-status" id="saveStatus">
+        <div class="save-status-title">✓ Settings saved</div>
+        <div class="save-status-body" id="saveStatusBody"></div>
+      </div>
+
+    </div>
+  </div><!-- /settingsView -->
 
   <script src="sidepanel.js"></script>
 </body>

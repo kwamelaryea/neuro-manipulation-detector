@@ -226,42 +226,92 @@ chrome.tabs.onActivated.addListener(() => {
   _deepRunning = false;
 });
 
+// ── View navigation ─────────────────────────────────────────────────────────
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+document.getElementById("settingsToggle").addEventListener("click", () => {
+  loadSettings().then(() => showView("settingsView"));
+});
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  showView("mainView");
+});
+
 // ── Settings ────────────────────────────────────────────────────────────────
+
+function updateKeyDisplay(key) {
+  const display = document.getElementById("keyDisplay");
+  const text = document.getElementById("keyDisplayText");
+  if (key) {
+    display.classList.add("has-key");
+    // Show first 8 chars + masked remainder
+    const visible = key.slice(0, 8);
+    text.textContent = visible + "••••••••••••";
+  } else {
+    display.classList.remove("has-key");
+    text.textContent = "No key configured";
+  }
+}
 
 async function loadSettings() {
   const { backendUrl, zdriveApiKey, enabled, useLocal } = await chrome.storage.sync.get([
     "backendUrl", "zdriveApiKey", "enabled", "useLocal",
   ]);
-  document.getElementById("zdriveApiKey").value = zdriveApiKey || "";
+  document.getElementById("zdriveApiKey").value = "";  // never pre-fill password fields
   document.getElementById("backendUrl").value = backendUrl || DEFAULT_BACKEND;
   document.getElementById("enabled").checked = enabled !== false;
   document.getElementById("useLocal").checked = useLocal === true;
+  updateKeyDisplay(zdriveApiKey || "");
   toggleLocalFields(useLocal === true);
+  // Hide save status on open
+  document.getElementById("saveStatus").classList.remove("visible");
 }
 
 function toggleLocalFields(isLocal) {
-  const show = isLocal;
-  document.getElementById("backendUrl").style.display = show ? "block" : "none";
-  document.getElementById("backendUrlLabel").style.display = show ? "block" : "none";
+  document.getElementById("customUrlGroup").style.display = isLocal ? "block" : "none";
 }
 
 document.getElementById("useLocal").addEventListener("change", (e) => {
   toggleLocalFields(e.target.checked);
 });
 
-document.getElementById("settingsToggle").addEventListener("click", () => {
-  document.getElementById("settingsSection").classList.toggle("open");
-});
-
 document.getElementById("saveBtn").addEventListener("click", async () => {
-  const zdriveApiKey = document.getElementById("zdriveApiKey").value.trim();
+  const newKey = document.getElementById("zdriveApiKey").value.trim();
   const backendUrl = document.getElementById("backendUrl").value.trim() || DEFAULT_BACKEND;
   const enabled = document.getElementById("enabled").checked;
   const useLocal = document.getElementById("useLocal").checked;
+
+  // Only update the key if a new one was typed; otherwise keep existing
+  const { zdriveApiKey: existingKey } = await chrome.storage.sync.get("zdriveApiKey");
+  const zdriveApiKey = newKey || existingKey || "";
+
   await chrome.storage.sync.set({ zdriveApiKey, backendUrl, enabled, useLocal });
-  const s = document.getElementById("saveStatus");
-  s.textContent = "Saved.";
-  setTimeout(() => (s.textContent = ""), 1500);
+  updateKeyDisplay(zdriveApiKey);
+  document.getElementById("zdriveApiKey").value = "";
+
+  // Contextual post-save message
+  let msg = "";
+  if (!enabled) {
+    msg = "Extension is disabled. Toggle Enabled to start scanning.";
+  } else if (useLocal) {
+    msg = `Scanning via local backend at ${backendUrl}. Make sure the server is running.`;
+  } else if (zdriveApiKey) {
+    msg = `Scanning via ZDrive Neuro Lens cloud. 1 credit per page scan. <a id="goBack">← Return to results</a>`;
+  } else {
+    msg = `No API key set — scans will fail. <a id="goBack">Add a key above</a> or get one at zdrive.io.`;
+  }
+
+  const statusEl = document.getElementById("saveStatus");
+  document.getElementById("saveStatusBody").innerHTML = msg;
+  statusEl.classList.add("visible");
+
+  // Wire the go-back link if present
+  const goBack = document.getElementById("goBack");
+  if (goBack) goBack.addEventListener("click", () => showView("mainView"));
 });
 
 // ── Init ────────────────────────────────────────────────────────────────────
