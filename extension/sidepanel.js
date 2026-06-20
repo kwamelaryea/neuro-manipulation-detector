@@ -140,15 +140,19 @@ async function runDeepScan(text, url, tabId) {
   _deepRunning = true;
   showDeepScanning();
 
-  const { backendUrl } = await chrome.storage.sync.get("backendUrl");
-  const base = backendUrl || DEFAULT_BACKEND;
+  const { backendUrl, zdriveApiKey, useLocal } = await chrome.storage.sync.get([
+    "backendUrl", "zdriveApiKey", "useLocal",
+  ]);
+  const base = useLocal ? "http://localhost:8000" : (backendUrl || DEFAULT_BACKEND);
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (zdriveApiKey && !useLocal) headers["X-ZDrive-API-Key"] = zdriveApiKey;
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 360_000);
     const res = await fetch(`${base}/analyze`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ text, url: url || null, mode: "deep" }),
       signal: controller.signal,
     });
@@ -225,19 +229,36 @@ chrome.tabs.onActivated.addListener(() => {
 // ── Settings ────────────────────────────────────────────────────────────────
 
 async function loadSettings() {
-  const { backendUrl, enabled } = await chrome.storage.sync.get(["backendUrl", "enabled"]);
+  const { backendUrl, zdriveApiKey, enabled, useLocal } = await chrome.storage.sync.get([
+    "backendUrl", "zdriveApiKey", "enabled", "useLocal",
+  ]);
+  document.getElementById("zdriveApiKey").value = zdriveApiKey || "";
   document.getElementById("backendUrl").value = backendUrl || DEFAULT_BACKEND;
   document.getElementById("enabled").checked = enabled !== false;
+  document.getElementById("useLocal").checked = useLocal === true;
+  toggleLocalFields(useLocal === true);
 }
+
+function toggleLocalFields(isLocal) {
+  const show = isLocal;
+  document.getElementById("backendUrl").style.display = show ? "block" : "none";
+  document.getElementById("backendUrlLabel").style.display = show ? "block" : "none";
+}
+
+document.getElementById("useLocal").addEventListener("change", (e) => {
+  toggleLocalFields(e.target.checked);
+});
 
 document.getElementById("settingsToggle").addEventListener("click", () => {
   document.getElementById("settingsSection").classList.toggle("open");
 });
 
 document.getElementById("saveBtn").addEventListener("click", async () => {
+  const zdriveApiKey = document.getElementById("zdriveApiKey").value.trim();
   const backendUrl = document.getElementById("backendUrl").value.trim() || DEFAULT_BACKEND;
   const enabled = document.getElementById("enabled").checked;
-  await chrome.storage.sync.set({ backendUrl, enabled });
+  const useLocal = document.getElementById("useLocal").checked;
+  await chrome.storage.sync.set({ zdriveApiKey, backendUrl, enabled, useLocal });
   const s = document.getElementById("saveStatus");
   s.textContent = "Saved.";
   setTimeout(() => (s.textContent = ""), 1500);

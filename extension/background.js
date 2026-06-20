@@ -5,33 +5,41 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 
-const DEFAULT_BACKEND = "http://localhost:8000";
+const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
+const LOCALHOST_BACKEND = "http://localhost:8000";
 
-async function getBackendUrl() {
-  const { backendUrl } = await chrome.storage.sync.get("backendUrl");
-  return backendUrl || DEFAULT_BACKEND;
-}
-
-async function getEnabled() {
-  const { enabled } = await chrome.storage.sync.get("enabled");
-  return enabled !== false;
+async function getSettings() {
+  const { backendUrl, zdriveApiKey, enabled, useLocal } = await chrome.storage.sync.get([
+    "backendUrl", "zdriveApiKey", "enabled", "useLocal",
+  ]);
+  return {
+    backendUrl: backendUrl || DEFAULT_BACKEND,
+    zdriveApiKey: zdriveApiKey || "",
+    enabled: enabled !== false,
+    useLocal: useLocal === true,
+  };
 }
 
 async function postAnalyze(text, url, mode) {
-  const base = await getBackendUrl();
+  const { backendUrl, zdriveApiKey, useLocal } = await getSettings();
+  const base = useLocal ? LOCALHOST_BACKEND : backendUrl;
   const controller = new AbortController();
-  // Deep scan takes ~4 min; fast scan should be <10s.
   const timeoutMs = mode === "deep" ? 360_000 : 30_000;
   const tid = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = { "Content-Type": "application/json" };
+  if (zdriveApiKey && !useLocal) headers["X-ZDrive-API-Key"] = zdriveApiKey;
   try {
     const res = await fetch(`${base}/analyze`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ text, url: url || null, mode }),
       signal: controller.signal,
     });
     clearTimeout(tid);
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { ok: false, error: body.error || `HTTP ${res.status}` };
+    }
     const data = await res.json();
     return { ok: true, data };
   } catch (e) {
@@ -43,7 +51,8 @@ async function postAnalyze(text, url, mode) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "ANALYZE") {
     (async () => {
-      if (!(await getEnabled())) {
+      const { enabled } = await getSettings();
+      if (!enabled) {
         sendResponse({ ok: false, disabled: true });
         return;
       }

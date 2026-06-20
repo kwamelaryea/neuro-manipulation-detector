@@ -1,0 +1,16 @@
+name = "zdrive-neuro-lens"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+INFERENCE_BASE_URL = "https://llm.chutes.ai/v1"
+INFERENCE_MODEL    = "Qwen/Qwen3-32B-TEE"
+CREDITS_CONTRACT   = ""     # ZDriveXCredits address on Base — fill before prod deploy
+BASE_RPC_URL       = "https://mainnet.base.org"
+ENVIRONMENT        = "production"
+
+# Secrets (set via `wrangler secret put`):
+#   INFERENCE_API_KEY    — Chutes API key
+#   OPERATOR_PRIVATE_KEY — signs consumeCredit txns (same key as ZDriveX worker)
+#   ZDRIVE_API_KEYS      — comma-separated list of valid API keys for beta users
