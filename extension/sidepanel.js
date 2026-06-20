@@ -1,4 +1,5 @@
-const DEFAULT_BACKEND = "http://localhost:8000";
+const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
+const LOCAL_BACKEND  = "http://localhost:8000";
 
 // ── Plain-English label maps ───────────────────────────────────────────────
 
@@ -113,9 +114,16 @@ function showDeepResult(data) {
   _deepRunning = false;
   const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   document.getElementById("deepTrigger").innerHTML = "";
-  document.getElementById("deepResult").innerHTML = scoreCardHTML(
-    data, `TRIBE v2 · ${now}`, "TRIBE v2"
-  );
+  // If the backend fell back to LLM (TRIBE v2 unavailable), label it clearly
+  const isLlmFallback = data.scorer === "llm";
+  const label   = isLlmFallback ? `LLM fallback · ${now}` : `TRIBE v2 · ${now}`;
+  const scorerTag = isLlmFallback ? "LLM" : "TRIBE v2";
+  document.getElementById("deepResult").innerHTML = scoreCardHTML(data, label, scorerTag)
+    + (isLlmFallback
+      ? `<div style="padding:6px 16px 10px;font-size:10px;color:#6B7280">
+           ⚠ TRIBE v2 unavailable — LLM used instead. Scores match Fast Scan.
+         </div>`
+      : "");
 }
 
 function showDeepError(msg) {
@@ -143,7 +151,14 @@ async function runDeepScan(text, url, tabId) {
   const { backendUrl, zdriveApiKey, useLocal } = await chrome.storage.sync.get([
     "backendUrl", "zdriveApiKey", "useLocal",
   ]);
-  const base = useLocal ? "http://localhost:8000" : (backendUrl || DEFAULT_BACKEND);
+
+  if (!useLocal) {
+    showDeepError("TRIBE v2 neural scan requires the local backend. Enable "Use local backend" in Settings, then run the Python server.");
+    chrome.storage.session.remove("pendingDeepScan");
+    return;
+  }
+
+  const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEFAULT_BACKEND;
 
   try {
     const headers = { "Content-Type": "application/json" };
@@ -262,7 +277,7 @@ async function loadSettings() {
     "backendUrl", "zdriveApiKey", "enabled", "useLocal",
   ]);
   document.getElementById("zdriveApiKey").value = "";  // never pre-fill password fields
-  document.getElementById("backendUrl").value = backendUrl || DEFAULT_BACKEND;
+  document.getElementById("backendUrl").value = backendUrl || LOCAL_BACKEND;
   document.getElementById("enabled").checked = enabled !== false;
   document.getElementById("useLocal").checked = useLocal === true;
   updateKeyDisplay(zdriveApiKey || "");
