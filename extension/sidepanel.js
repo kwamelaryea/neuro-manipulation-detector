@@ -244,7 +244,7 @@ async function runDeepScan(text, url, tabId) {
       chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: true, data }).catch(() => {});
     }
   } catch (e) {
-    const errMsg = e.name === "AbortError" ? "Timed out after 6 min" : String(e);
+    const errMsg = e.name === "AbortError" ? `Timed out (${base})` : `${e} (${base})`;
     showDeepError(errMsg);
     chrome.storage.session.remove("pendingDeepScan");
     if (tabId) {
