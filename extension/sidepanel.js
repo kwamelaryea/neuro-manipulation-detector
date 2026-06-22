@@ -165,7 +165,10 @@ function showDeepScanning() {
   document.getElementById("deepTrigger").innerHTML = `
     <div class="deep-scanning">
       <div class="pulse"></div>
-      Deep scan running…
+      <div>
+        <div>Neural inference running…</div>
+        <div style="font-size:10px;color:#6B7280;margin-top:2px">TRIBE v2 brain scan — usually 1–3 min</div>
+      </div>
     </div>
   `;
 }
@@ -283,24 +286,30 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-// Reset panel when user switches tabs.
+// Restore or reset panel when user switches tabs.
 chrome.tabs.onActivated.addListener(async () => {
-  _deepRunning = false;
-  _lastFastData = null;
+  if (_deepRunning) return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabUrl = tab?.url || "";
+
+  if (_currentUrl && tabUrl.includes(new URL(_currentUrl).hostname)) {
+    return;
+  }
 
   const { lastResult, lastDeepResult } = await chrome.storage.session.get([
     "lastResult", "lastDeepResult",
   ]);
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const tabUrl = tab?.url || "";
 
-  if (lastResult?.data && lastResult.url && tabUrl.startsWith(lastResult.url.slice(0, 40))) {
+  if (lastResult?.data && lastResult.url && tabUrl.includes(new URL(lastResult.url).hostname)) {
+    _lastFastData = null;
     showFastResult(lastResult.url, lastResult.data);
     attachDeepBtn();
     if (lastDeepResult?.data) {
       showDeepResult(lastDeepResult.data);
     }
   } else {
+    _lastFastData = null;
     document.getElementById("fastResult").innerHTML = `
       <div class="waiting">
         <img class="waiting-icon" src="icons/glass-brain.png" alt="" />
