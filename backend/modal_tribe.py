@@ -39,7 +39,7 @@ image = (
         "python -m spacy download en_core_web_lg",
     )
     # Copy local backend modules into the image (roi, index, models, cache)
-    .add_local_python_source("roi", "index", "models", "cache")
+    .add_local_python_source("roi", "index", "models", "cache", "typographic")
     # Bundle the z-scoring baseline arrays for population normalization
     .add_local_dir("calibration", remote_path="/root/calibration")
 )
@@ -86,6 +86,7 @@ class TribeScorer:
 
         from index import compute_scores
         from roi import roi_means
+        from typographic import typographic_score
 
         tf = tempfile.NamedTemporaryFile(
             suffix=".txt", delete=False, mode="w", encoding="utf-8"
@@ -100,8 +101,9 @@ class TribeScorer:
         finally:
             os.unlink(tf.name)
 
+        typo = typographic_score(text)
         means = roi_means(acts, self._roi_idx)
-        result = compute_scores(means, text_len=len(text))
+        result = compute_scores(means, text_len=len(text), typo_score=typo)
         return result.model_dump()
 
     @modal.method()

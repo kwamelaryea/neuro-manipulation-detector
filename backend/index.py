@@ -17,8 +17,9 @@ from roi import EMOTIONAL_ROIS, CONTROL_ROIS
 from models import AnalyzeResponse
 
 INTENSITY_SCALE = 3.0
-INTENSITY_SHIFT = 0.2
+INTENSITY_SHIFT = 0.4
 CONTRAST_WEIGHT = 2.0
+TYPOGRAPHIC_WEIGHT = 3.0
 
 
 def _avg(roi_means: dict[str, float], rois: tuple[str, ...]) -> float:
@@ -61,7 +62,7 @@ def _squash_to_unit(z: float) -> float:
     return max(0.0, min(1.0, _sigmoid(z)))
 
 
-def compute_scores(roi_means: dict[str, float], text_len: int) -> AnalyzeResponse:
+def compute_scores(roi_means: dict[str, float], text_len: int, typo_score: float = 0.0) -> AnalyzeResponse:
     emotional_z = _avg(roi_means, EMOTIONAL_ROIS)
     control_z = _avg(roi_means, CONTROL_ROIS)
 
@@ -70,6 +71,7 @@ def compute_scores(roi_means: dict[str, float], text_len: int) -> AnalyzeRespons
     mi = 10.0 * _sigmoid(
         INTENSITY_SCALE * (overall_z - INTENSITY_SHIFT)
         + CONTRAST_WEIGHT * contrast
+        + TYPOGRAPHIC_WEIGHT * typo_score
     )
     mi = max(0.0, min(10.0, round(mi, 2)))
 

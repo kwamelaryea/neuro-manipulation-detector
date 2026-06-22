@@ -53,8 +53,10 @@ def score_text(text: str) -> AnalyzeResponse:
     import numpy as np
     from roi import get_roi_vertex_indices, roi_means
     from index import compute_scores
+    from typographic import typographic_score
 
     acts = _run_tribe(text)
     idx = get_roi_vertex_indices()
+    typo = typographic_score(text)
     means = roi_means(acts, idx)
-    return compute_scores(means, text_len=len(text))
+    return compute_scores(means, text_len=len(text), typo_score=typo)

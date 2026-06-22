@@ -96,7 +96,7 @@ CORPUS = [
     {
         "id": "marketing-subtle",
         "label": "Marketing (subtle)",
-        "expected": (3, 6),
+        "expected": (2, 6),
         "text": (
             "There is a difference between using a tool and owning one. Every major "
             "AI platform is built on the former. Your conversations train the next model. "

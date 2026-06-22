@@ -20,7 +20,7 @@ def test_score_text_passes_text_len_to_index(monkeypatch):
     fake_acts = np.random.rand(2, 20484)
     captured = {}
 
-    def fake_compute(roi_means, text_len):
+    def fake_compute(roi_means, text_len, typo_score=0.0):
         captured["text_len"] = text_len
         return AnalyzeResponse(
             limbic_score=0.5, pfc_score=0.5, manipulation_index=5.0,
