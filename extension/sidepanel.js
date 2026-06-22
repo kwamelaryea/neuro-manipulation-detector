@@ -217,6 +217,8 @@ async function runDeepScan(text, url, tabId) {
   ]);
 
   const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEEP_BACKEND;
+  const trimmed = text.slice(0, 3000);
+  console.log(`[NMD] Deep scan → ${base}/analyze (${trimmed.length} chars)`);
 
   try {
     const headers = { "Content-Type": "application/json" };
@@ -226,7 +228,7 @@ async function runDeepScan(text, url, tabId) {
     const res = await fetch(`${base}/analyze`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ text, url: url || null, mode: "deep" }),
+      body: JSON.stringify({ text: trimmed, url: url || null, mode: "deep" }),
       signal: controller.signal,
     });
     clearTimeout(tid);
