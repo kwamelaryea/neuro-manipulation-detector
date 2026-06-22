@@ -1,5 +1,6 @@
 const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
-const LOCAL_BACKEND  = "http://localhost:8000";
+const DEEP_BACKEND   = "https://zdrive-neuro-lens.fly.dev";
+const LOCAL_BACKEND   = "http://localhost:8000";
 
 // ── Plain-English label maps ───────────────────────────────────────────────
 
@@ -215,14 +216,7 @@ async function runDeepScan(text, url, tabId) {
     "backendUrl", "zdriveApiKey", "useLocal",
   ]);
 
-  if (!useLocal) {
-    _deepRunning = false;
-    showDeepError('TRIBE v2 requires local backend. Enable "Use local backend" in Settings, then start the Python server.');
-    chrome.storage.session.remove("pendingDeepScan");
-    return;
-  }
-
-  const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEFAULT_BACKEND;
+  const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEEP_BACKEND;
 
   try {
     const headers = { "Content-Type": "application/json" };
