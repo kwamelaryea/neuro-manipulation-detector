@@ -284,18 +284,33 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // Reset panel when user switches tabs.
-chrome.tabs.onActivated.addListener(() => {
-  document.getElementById("fastResult").innerHTML = `
-    <div class="waiting">
-      <img class="waiting-icon" src="icons/glass-brain.png" alt="" />
-      <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
-    </div>
-  `;
-  document.getElementById("deepSection").style.display = "none";
-  document.getElementById("deepResult").innerHTML = "";
-  document.getElementById("urlBar").textContent = "Scanning new page…";
+chrome.tabs.onActivated.addListener(async () => {
   _deepRunning = false;
   _lastFastData = null;
+
+  const { lastResult, lastDeepResult } = await chrome.storage.session.get([
+    "lastResult", "lastDeepResult",
+  ]);
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabUrl = tab?.url || "";
+
+  if (lastResult?.data && lastResult.url && tabUrl.startsWith(lastResult.url.slice(0, 40))) {
+    showFastResult(lastResult.url, lastResult.data);
+    attachDeepBtn();
+    if (lastDeepResult?.data) {
+      showDeepResult(lastDeepResult.data);
+    }
+  } else {
+    document.getElementById("fastResult").innerHTML = `
+      <div class="waiting">
+        <img class="waiting-icon" src="icons/glass-brain.png" alt="" />
+        <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
+      </div>
+    `;
+    document.getElementById("deepSection").style.display = "none";
+    document.getElementById("deepResult").innerHTML = "";
+    document.getElementById("urlBar").textContent = "Scanning new page…";
+  }
 });
 
 // ── View navigation ─────────────────────────────────────────────────────────
