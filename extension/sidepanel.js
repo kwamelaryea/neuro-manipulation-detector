@@ -12,16 +12,18 @@ const TECHNIQUE_LABELS = {
 };
 
 const ROI_META = {
-  insula:                   { label: "Visceral urgency",  sub: "insula",             color: "#A78BFA" },
-  entorhinal:               { label: "Identity recall",   sub: "entorhinal cortex",  color: "#C084FC" },
-  parahippocampal:          { label: "Emotional memory",  sub: "parahippocampal",    color: "#E879F9" },
-  rostralmiddlefrontal:     { label: "Reasoning",         sub: "middle frontal",     color: "#2DD4BF" },
-  caudalanteriorcingulate:  { label: "Conflict alert",    sub: "anterior cingulate", color: "#5EEAD4" },
-  rostralanteriorcingulate: { label: "Evaluation",        sub: "rostral ACC",        color: "#99F6E4" },
+  insula:           { label: "Visceral urgency",   sub: "insula",              color: "#A78BFA" },
+  tpj:              { label: "Emotional context",  sub: "temporo-parietal",    color: "#C084FC" },
+  mtg:              { label: "Semantic affect",    sub: "middle temporal",     color: "#E879F9" },
+  parahippocampal:  { label: "Emotional memory",   sub: "parahippocampal",     color: "#D946EF" },
+  broca45:          { label: "Language control",   sub: "Broca's area",        color: "#2DD4BF" },
+  sts:              { label: "Speech processing",  sub: "superior temporal",   color: "#5EEAD4" },
+  dlpfc:            { label: "Reasoning",          sub: "dorsolateral PFC",    color: "#99F6E4" },
+  acc:              { label: "Conflict monitor",   sub: "anterior cingulate",  color: "#6EE7B7" },
 };
 
-const LIMBIC_ROIS = ["insula", "entorhinal", "parahippocampal"];
-const PFC_ROIS = ["rostralmiddlefrontal", "caudalanteriorcingulate", "rostralanteriorcingulate"];
+const LIMBIC_ROIS = ["insula", "tpj", "mtg", "parahippocampal"];
+const PFC_ROIS = ["broca45", "sts", "dlpfc", "acc"];
 
 const MI_LABEL = (index) => {
   if (index >= 7) return "Highly manipulative";

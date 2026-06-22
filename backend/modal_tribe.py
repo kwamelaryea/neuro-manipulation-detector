@@ -40,6 +40,8 @@ image = (
     )
     # Copy local backend modules into the image (roi, index, models, cache)
     .add_local_python_source("roi", "index", "models", "cache")
+    # Bundle the z-scoring baseline arrays for population normalization
+    .add_local_dir("calibration", remote_path="/root/calibration")
 )
 
 
@@ -101,6 +103,85 @@ class TribeScorer:
         means = roi_means(acts, self._roi_idx)
         result = compute_scores(means, text_len=len(text))
         return result.model_dump()
+
+    @modal.method()
+    def score_raw(self, text: str) -> dict:
+        """Return raw activations as a nested list for baseline building."""
+        import os
+        import tempfile
+
+        import numpy as np
+
+        tf = tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False, mode="w", encoding="utf-8"
+        )
+        tf.write(text)
+        tf.close()
+
+        try:
+            df = self._model.get_events_dataframe(text_path=tf.name)
+            preds, _ = self._model.predict(events=df)
+            acts = np.asarray(preds, dtype=np.float32)
+        finally:
+            os.unlink(tf.name)
+
+        return {
+            "activations": acts.tolist(),
+            "shape": list(acts.shape),
+        }
+
+    @modal.method()
+    def debug_paths(self) -> dict:
+        """Check baseline file paths on the Modal container."""
+        from pathlib import Path
+        import roi as roi_mod
+
+        roi_file = Path(roi_mod.__file__)
+        local_cal = roi_file.parent / "calibration"
+        root_cal = Path("/root/calibration")
+
+        return {
+            "roi.__file__": str(roi_file),
+            "roi.parent": str(roi_file.parent),
+            "local_cal_exists": local_cal.exists(),
+            "local_cal_contents": [str(p) for p in local_cal.iterdir()] if local_cal.exists() else [],
+            "root_cal_exists": root_cal.exists(),
+            "root_cal_contents": [str(p) for p in root_cal.iterdir()] if root_cal.exists() else [],
+            "baseline_dir_used": str(roi_mod._BASELINE_DIR),
+            "baseline_loaded": roi_mod._load_baseline()[0] is not None,
+        }
+
+    @modal.method()
+    def probe(self, text: str) -> dict:
+        """Return raw activation stats for calibration research."""
+        import os
+        import tempfile
+
+        import numpy as np
+
+        tf = tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False, mode="w", encoding="utf-8"
+        )
+        tf.write(text)
+        tf.close()
+
+        try:
+            df = self._model.get_events_dataframe(text_path=tf.name)
+            preds, extras = self._model.predict(events=df)
+            acts = np.asarray(preds)
+        finally:
+            os.unlink(tf.name)
+
+        return {
+            "shape": list(acts.shape),
+            "dtype": str(acts.dtype),
+            "min": float(acts.min()),
+            "max": float(acts.max()),
+            "mean": float(acts.mean()),
+            "std": float(acts.std()),
+            "extras_type": str(type(extras)),
+            "extras_keys": list(extras.keys()) if isinstance(extras, dict) else str(extras)[:200],
+        }
 
 
 @app.local_entrypoint()
