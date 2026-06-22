@@ -37,6 +37,7 @@ def test_analyze_returns_contract_shape():
         "dominant_technique",
         "confidence",
         "scorer",
+        "roi_detail",
     }
     assert body["dominant_technique"] == "urgency"
     assert body["scorer"] == "llm"

@@ -11,6 +11,18 @@ const TECHNIQUE_LABELS = {
   neutral:        "No manipulation detected",
 };
 
+const ROI_META = {
+  insula:                   { label: "Visceral urgency",  sub: "insula",             color: "#A78BFA" },
+  entorhinal:               { label: "Identity recall",   sub: "entorhinal cortex",  color: "#C084FC" },
+  parahippocampal:          { label: "Emotional memory",  sub: "parahippocampal",    color: "#E879F9" },
+  rostralmiddlefrontal:     { label: "Reasoning",         sub: "middle frontal",     color: "#2DD4BF" },
+  caudalanteriorcingulate:  { label: "Conflict alert",    sub: "anterior cingulate", color: "#5EEAD4" },
+  rostralanteriorcingulate: { label: "Evaluation",        sub: "rostral ACC",        color: "#99F6E4" },
+};
+
+const LIMBIC_ROIS = ["insula", "entorhinal", "parahippocampal"];
+const PFC_ROIS = ["rostralmiddlefrontal", "caudalanteriorcingulate", "rostralanteriorcingulate"];
+
 const MI_LABEL = (index) => {
   if (index >= 7) return "Highly manipulative";
   if (index >= 4) return "Moderately manipulative";
@@ -21,6 +33,7 @@ const MI_LABEL = (index) => {
 
 let _currentUrl = "";
 let _deepRunning = false;
+let _lastFastData = null;
 
 // ── Score rendering ────────────────────────────────────────────────────────
 
@@ -28,6 +41,26 @@ function miColor(index) {
   if (index >= 7) return "#DC2626";
   if (index >= 4) return "#D97706";
   return "#16A34A";
+}
+
+function roiSubBarsHTML(keys, roi) {
+  const rows = keys.map((k) => {
+    const meta = ROI_META[k];
+    if (!meta || roi[k] == null) return "";
+    const pct = Math.max(2, roi[k] * 100).toFixed(0);
+    return `
+      <div class="bio-bar-row roi-sub-row">
+        <div class="bio-label-wrap">
+          <span class="bio-label-main roi-sub-label">${meta.label}</span>
+          <span class="bio-label-sub">${meta.sub}</span>
+        </div>
+        <div class="bio-track">
+          <div class="bio-fill" style="width:${pct}%;background:${meta.color}"></div>
+        </div>
+        <span class="bio-val">${pct}%</span>
+      </div>`;
+  }).join("");
+  return `<div class="roi-sub-bars">${rows}</div>`;
 }
 
 function scoreCardHTML(data, label, scorerTag) {
@@ -75,6 +108,7 @@ function scoreCardHTML(data, label, scorerTag) {
           </div>
           <span class="bio-val">${(data.limbic_score * 100).toFixed(0)}%</span>
         </div>
+        ${data.roi_detail ? roiSubBarsHTML(LIMBIC_ROIS, data.roi_detail) : ""}
         <div class="bio-bar-row" title="Predicted activity in the rational brain. High = content engages your critical thinking rather than bypassing it.">
           <div class="bio-label-wrap">
             <span class="bio-label-main">Rational guard</span>
@@ -85,6 +119,7 @@ function scoreCardHTML(data, label, scorerTag) {
           </div>
           <span class="bio-val">${(data.pfc_score * 100).toFixed(0)}%</span>
         </div>
+        ${data.roi_detail ? roiSubBarsHTML(PFC_ROIS, data.roi_detail) : ""}
       </div>
       <div class="pill-row">
         <span class="pill ${confClass}">${confDesc}</span>
@@ -96,9 +131,26 @@ function scoreCardHTML(data, label, scorerTag) {
 
 function showFastResult(url, data) {
   _currentUrl = url || _currentUrl;
+  _lastFastData = data;
   document.getElementById("urlBar").textContent = _currentUrl || "—";
   document.getElementById("fastResult").innerHTML = scoreCardHTML(data, "FAST SCAN", "LLM");
   document.getElementById("deepSection").style.display = "block";
+}
+
+function collapseFastScan() {
+  if (!_lastFastData) return;
+  const d = _lastFastData;
+  const color = miColor(d.manipulation_index);
+  const technique = TECHNIQUE_LABELS[d.dominant_technique] || d.dominant_technique;
+  document.getElementById("fastResult").innerHTML = `
+    <div class="fast-collapsed">
+      <span class="fast-collapsed-label">FAST SCAN</span>
+      <span class="fast-collapsed-score" style="color:${color}">${d.manipulation_index.toFixed(1)}</span>
+      <span class="fast-collapsed-sep">&middot;</span>
+      <span class="fast-collapsed-technique">${technique}</span>
+      <span class="scorer-tag llm">LLM</span>
+    </div>
+  `;
 }
 
 function showDeepScanning() {
@@ -114,10 +166,10 @@ function showDeepResult(data) {
   _deepRunning = false;
   const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   document.getElementById("deepTrigger").innerHTML = "";
-  // If the backend fell back to LLM (TRIBE v2 unavailable), label it clearly
   const isLlmFallback = data.scorer === "llm";
   const label   = isLlmFallback ? `LLM fallback · ${now}` : `TRIBE v2 · ${now}`;
   const scorerTag = isLlmFallback ? "LLM" : "TRIBE v2";
+  if (!isLlmFallback) collapseFastScan();
   document.getElementById("deepResult").innerHTML = scoreCardHTML(data, label, scorerTag)
     + (isLlmFallback
       ? `<div style="padding:6px 16px 10px;font-size:10px;color:#6B7280">
@@ -240,6 +292,7 @@ chrome.tabs.onActivated.addListener(() => {
   document.getElementById("deepResult").innerHTML = "";
   document.getElementById("urlBar").textContent = "Scanning new page…";
   _deepRunning = false;
+  _lastFastData = null;
 });
 
 // ── View navigation ─────────────────────────────────────────────────────────

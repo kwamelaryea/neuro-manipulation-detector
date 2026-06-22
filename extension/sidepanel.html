@@ -215,6 +215,49 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* ── ROI sub-bars (nested under parent, deep scan only) */
+    .roi-sub-bars {
+      padding-left: 12px;
+      margin: 2px 0 8px;
+      border-left: 2px solid #1E2630;
+    }
+    .roi-sub-row { margin-bottom: 5px; }
+    .roi-sub-row:last-child { margin-bottom: 0; }
+    .roi-sub-row .bio-label-wrap { width: 96px; }
+    .roi-sub-label { font-size: 10px; font-weight: 600; color: #C9D1D9; }
+    .roi-sub-row .bio-label-sub { font-size: 9px; color: #94A3B8; }
+    .roi-sub-row .bio-val { font-size: 11px; }
+
+    /* ── Collapsed fast scan ────────────────────────────── */
+    .fast-collapsed {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #161B22;
+    }
+    .fast-collapsed-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6B7280;
+    }
+    .fast-collapsed-score {
+      font-size: 16px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .fast-collapsed-sep { color: #30363D; }
+    .fast-collapsed-technique {
+      font-size: 11px;
+      color: #94A3B8;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .pill-row { display: flex; gap: 5px; flex-wrap: wrap; }
     .pill {
       font-size: 10px;

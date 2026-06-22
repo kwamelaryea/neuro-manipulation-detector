@@ -47,4 +47,5 @@ def compute_scores(roi_means: dict[str, float], text_len: int) -> AnalyzeRespons
         manipulation_index=round(mi, 2),
         dominant_technique=_technique(roi_means),
         confidence=_confidence(text_len),
+        roi_detail={k: round(v, 4) for k, v in roi_means.items()},
     )

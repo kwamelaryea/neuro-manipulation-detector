@@ -27,3 +27,4 @@ class AnalyzeResponse(BaseModel):
     dominant_technique: TechniqueType = Field(..., description="Primary persuasion technique detected")
     confidence: ConfidenceType = Field(..., description="Scorer confidence band")
     scorer: Optional[Literal["llm", "tribe"]] = Field(None, description="Which scorer produced this result")
+    roi_detail: Optional[dict[str, float]] = Field(None, description="Per-ROI activation means (TRIBE v2 deep scan only)")
