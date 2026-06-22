@@ -43,7 +43,8 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
 
     if req.mode == "deep":
         try:
-            result = _score_deep(req.text)
+            text = req.text[:3000]
+            result = _score_deep(text)
             result.scorer = "tribe"
         except Exception as exc:
             # TRIBE v2 unavailable (tribev2 not installed / Modal not configured).
