@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+tests/
+calibration/raw_activations/
+calibration_results*.json
+cache_store.json
+build_baseline.py
+calibration_test.py
+modal_tribe.py
+*.pyc

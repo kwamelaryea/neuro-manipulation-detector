@@ -13,6 +13,7 @@ export interface Env {
   INFERENCE_BASE_URL: string;       // https://llm.chutes.ai/v1
   INFERENCE_MODEL: string;          // Qwen/Qwen3-32B-TEE
   INFERENCE_API_KEY: string;        // Chutes API key (secret)
+  DEEP_SCAN_URL: string;            // https://zdrive-neuro-lens.fly.dev
   CREDITS_CONTRACT: string;         // ZDriveXCredits on Base
   BASE_RPC_URL: string;             // https://mainnet.base.org
   OPERATOR_PRIVATE_KEY: string;     // signs consumeCredit txns (secret)
@@ -201,12 +202,30 @@ async function handleAnalyze(req: Request, env: Env, ctx: ExecutionContext): Pro
     return Response.json({ error: 'text too long (max 8000 chars)' }, { status: 413 });
   }
 
-  // Deep scan (TRIBE v2) not available in worker — fast LLM only
   if (mode === 'deep') {
-    return Response.json(
-      { error: 'Deep scan (TRIBE v2) is not available in the hosted worker. Run the local backend with NMD_USE_MODAL=true.' },
-      { status: 422 }
-    );
+    if (!env.DEEP_SCAN_URL) {
+      return Response.json(
+        { error: 'Deep scan not configured. Contact support.' },
+        { status: 422 }
+      );
+    }
+    try {
+      const deepRes = await fetch(`${env.DEEP_SCAN_URL}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 4000), url: body.url, mode: 'deep' }),
+      });
+      if (!deepRes.ok) {
+        const errBody = await deepRes.text();
+        throw new Error(`Deep scan ${deepRes.status}: ${errBody.slice(0, 200)}`);
+      }
+      const result = await deepRes.json();
+      ctx.waitUntil(consumeCredit(env, ctx));
+      return Response.json(result);
+    } catch (e) {
+      console.error('[deep-scan] error:', e);
+      return Response.json({ error: String(e) }, { status: 502 });
+    }
   }
 
   try {

@@ -8,6 +8,7 @@ INFERENCE_BASE_URL = "https://llm.chutes.ai/v1"
 INFERENCE_MODEL    = "Qwen/Qwen3-32B-TEE"
 CREDITS_CONTRACT   = ""     # ZDriveXCredits address on Base — fill before prod deploy
 BASE_RPC_URL       = "https://mainnet.base.org"
+DEEP_SCAN_URL      = "https://zdrive-neuro-lens.fly.dev"
 ENVIRONMENT        = "production"
 
 # Secrets (set via `wrangler secret put`):
