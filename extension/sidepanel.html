@@ -263,6 +263,64 @@
       white-space: nowrap;
     }
 
+    /* ── High-MI CTA ─────────────────────────────────────── */
+    .mi-cta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, #0E1A2B 0%, #0D1117 100%);
+      border: 1px solid #1E2630;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .mi-cta:hover {
+      border-color: #6D28D9;
+      background: linear-gradient(135deg, #141E33 0%, #111820 100%);
+    }
+    .mi-cta-icon {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mi-cta-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .mi-cta-text {
+      flex: 1;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #94A3B8;
+    }
+    .mi-cta-text strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #F5F0E8;
+      margin-bottom: 1px;
+    }
+    .mi-cta-arrow {
+      color: #6D28D9;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ── Powered-by footer ──────────────────────────────── */
+    .powered-by {
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #94A3B8;
+      border-top: 1px solid #161B22;
+    }
+    .powered-by a {
+      color: #6D28D9;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .powered-by a:hover { color: #8B5CF6; text-decoration: underline; }
+
     .pill-row { display: flex; gap: 5px; flex-wrap: wrap; }
     .pill {
       font-size: 10px;
@@ -279,7 +337,7 @@
 
     /* ── Waiting / empty ────────────────────────────────── */
     .waiting { padding: 36px 16px; text-align: center; color: #30363D; }
-    .waiting-icon { width: 40px; height: 40px; margin: 0 auto 8px; opacity: 0.4; }
+    .waiting-icon { width: 112px; height: 112px; margin: 0 auto 12px; border-radius: 16px; }
     .waiting-text { font-size: 12px; line-height: 1.6; color: #4B5563; }
 
     /* ── Deep scan section ──────────────────────────────── */
@@ -515,7 +573,7 @@
 
     <div id="fastResult">
       <div class="waiting">
-        <img class="waiting-icon" src="icons/icon32.png" alt="" />
+        <img class="waiting-icon" src="icons/glass-brain.png" alt="" />
         <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
       </div>
     </div>
@@ -528,6 +586,10 @@
         </button>
       </div>
       <div id="deepResult"></div>
+    </div>
+
+    <div class="powered-by">
+      Powered by <a href="https://zdrive.io?utm_source=neuro-lens&utm_medium=extension&utm_content=footer" target="_blank">ZDrive</a> — Private AI inference
     </div>
 
   </div><!-- /mainView -->

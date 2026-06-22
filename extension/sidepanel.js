@@ -127,6 +127,15 @@ function scoreCardHTML(data, label, scorerTag) {
         <span class="pill ${confClass}">${confDesc}</span>
         <span class="pill pill-technique">${technique}</span>
       </div>
+      ${data.manipulation_index >= 7 ? `
+      <a class="mi-cta" href="https://zdrive.io?utm_source=neuro-lens&utm_medium=extension&utm_content=high-mi-cta&utm_campaign=research-privately" target="_blank">
+        <div class="mi-cta-icon"><img src="icons/icon32.png" alt="" /></div>
+        <div class="mi-cta-text">
+          <strong>Research this privately</strong>
+          Ask questions where no one can see your queries
+        </div>
+        <span class="mi-cta-arrow">→</span>
+      </a>` : ""}
     </div>
   `;
 }
@@ -286,7 +295,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 chrome.tabs.onActivated.addListener(() => {
   document.getElementById("fastResult").innerHTML = `
     <div class="waiting">
-      <img class="waiting-icon" src="icons/icon32.png" alt="" />
+      <img class="waiting-icon" src="icons/glass-brain.png" alt="" />
       <div class="waiting-text">Scroll the page to trigger<br>a real-time scan</div>
     </div>
   `;
