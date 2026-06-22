@@ -130,12 +130,8 @@ function scoreCardHTML(data, label, scorerTag) {
       </div>
       ${data.manipulation_index >= 7 ? `
       <a class="mi-cta" href="https://zdrive.io?utm_source=neuro-lens&utm_medium=extension&utm_content=high-mi-cta&utm_campaign=research-privately" target="_blank">
-        <div class="mi-cta-icon"><img src="icons/icon32.png" alt="" /></div>
-        <div class="mi-cta-text">
-          <strong>Research this privately</strong>
-          Ask questions where no one can see your queries
-        </div>
-        <span class="mi-cta-arrow">→</span>
+        <span class="mi-cta-text">Research this privately</span>
+        <span class="mi-cta-sub">Ask questions where no one can see your queries</span>
       </a>` : ""}
     </div>
   `;

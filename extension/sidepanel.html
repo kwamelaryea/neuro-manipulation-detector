@@ -265,45 +265,29 @@
 
     /* ── High-MI CTA ─────────────────────────────────────── */
     .mi-cta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-      padding: 10px 12px;
-      background: linear-gradient(135deg, #0E1A2B 0%, #0D1117 100%);
-      border: 1px solid #1E2630;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .mi-cta:hover {
-      border-color: #6D28D9;
-      background: linear-gradient(135deg, #141E33 0%, #111820 100%);
-    }
-    .mi-cta-icon {
-      width: 28px; height: 28px;
-      border-radius: 6px;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .mi-cta-icon img { width: 100%; height: 100%; object-fit: cover; }
-    .mi-cta-text {
-      flex: 1;
-      font-size: 11px;
-      line-height: 1.4;
-      color: #94A3B8;
-    }
-    .mi-cta-text strong {
       display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #F5F0E8;
-      margin-bottom: 1px;
+      margin-top: 10px;
+      padding: 11px 16px;
+      background: #6D28D9;
+      border: none;
+      border-radius: 9px;
+      text-decoration: none;
+      text-align: center;
+      transition: background 0.15s;
     }
-    .mi-cta-arrow {
-      color: #6D28D9;
-      font-size: 14px;
-      flex-shrink: 0;
+    .mi-cta:hover { background: #7C3AED; }
+    .mi-cta-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.4;
+    }
+    .mi-cta-sub {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.7);
+      margin-top: 2px;
     }
 
     /* ── Powered-by footer ──────────────────────────────── */
