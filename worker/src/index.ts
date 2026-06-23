@@ -96,8 +96,9 @@ function withCors(res: Response): Response {
 function checkApiKey(req: Request, env: Env): boolean {
   const key = req.headers.get('X-ZDrive-API-Key');
   if (!key) return false;
+  // Beta: accept any znl_ prefixed key (billing is a no-op; tighten when accounts ship)
+  if (key.startsWith('znl_') && key.length >= 16) return true;
   const valid = (env.ZDRIVE_API_KEYS ?? '').split(',').map(k => k.trim()).filter(Boolean);
-  // Dev mode: if no keys configured, allow all (only in non-prod)
   if (valid.length === 0 && env.ENVIRONMENT !== 'production') return true;
   return valid.includes(key);
 }
@@ -134,14 +135,16 @@ async function keccak256Hex(input: string): Promise<string> {
 // ── Inference ──────────────────────────────────────────────────────────────
 
 function extractJson(raw: string): Record<string, unknown> {
-  const fenced = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  // Strip Qwen3 <think>…</think> blocks — greedy regex grabs braces inside them
+  const stripped = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const fenced = stripped.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
   if (fenced) return JSON.parse(fenced[1]);
-  const bare = raw.match(/\{[\s\S]*\}/);
+  const bare = stripped.match(/\{[\s\S]*\}/);
   if (bare) return JSON.parse(bare[0]);
   throw new Error('No JSON object in model response');
 }
 
-async function scoreText(text: string, env: Env): Promise<Record<string, unknown>> {
+async function callInference(text: string, env: Env): Promise<string> {
   const res = await fetch(`${env.INFERENCE_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -153,7 +156,7 @@ async function scoreText(text: string, env: Env): Promise<Record<string, unknown
       max_tokens: 512,
       stream: false,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: SYSTEM_PROMPT + '\n/no_think' },
         { role: 'user', content: text },
       ],
     }),
@@ -165,16 +168,26 @@ async function scoreText(text: string, env: Env): Promise<Record<string, unknown
   }
 
   const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-  const content = data.choices?.[0]?.message?.content ?? '';
-  const parsed = extractJson(content);
+  return data.choices?.[0]?.message?.content ?? '';
+}
 
-  // Validate required fields
+async function scoreText(text: string, env: Env): Promise<Record<string, unknown>> {
   const required = ['limbic_score', 'pfc_score', 'manipulation_index', 'dominant_technique', 'confidence'];
-  for (const f of required) {
-    if (!(f in parsed)) throw new Error(`Missing field in model response: ${f}`);
-  }
 
-  return { ...parsed, scorer: 'llm' };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const content = await callInference(text, env);
+    try {
+      const parsed = extractJson(content);
+      for (const f of required) {
+        if (!(f in parsed)) throw new Error(`Missing field: ${f}`);
+      }
+      return { ...parsed, scorer: 'llm' };
+    } catch (e) {
+      if (attempt === 1) throw e;
+      console.warn(`[analyze] attempt ${attempt + 1} failed, retrying:`, e);
+    }
+  }
+  throw new Error('unreachable');
 }
 
 // ── Request handlers ───────────────────────────────────────────────────────

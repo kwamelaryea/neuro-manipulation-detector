@@ -277,8 +277,18 @@ chrome.runtime.onMessage.addListener((msg) => {
     showFastResult(msg.url, msg.data);
     attachDeepBtn();
   }
+  if (msg.type === "SCAN_ERROR") {
+    document.getElementById("urlBar").textContent = msg.url || "—";
+    document.getElementById("fastResult").innerHTML = `
+      <div class="waiting">
+        <div class="waiting-text" style="color:#DC2626;font-size:11px">
+          Scan failed: ${msg.error}<br>
+          <span style="color:#6B7280;font-size:10px">Check settings or try reloading the page</span>
+        </div>
+      </div>
+    `;
+  }
   if (msg.type === "DO_DEEP_SCAN") {
-    // Background forwarded a badge-triggered deep scan; panel does the actual fetch.
     runDeepScan(msg.text, msg.url, msg.tabId);
   }
   if (msg.type === "DEEP_SCANNING") {
@@ -377,9 +387,9 @@ document.getElementById("useLocal").addEventListener("change", (e) => {
 
 document.getElementById("saveBtn").addEventListener("click", async () => {
   const newKey = document.getElementById("zdriveApiKey").value.trim();
-  const backendUrl = document.getElementById("backendUrl").value.trim() || DEFAULT_BACKEND;
   const enabled = document.getElementById("enabled").checked;
   const useLocal = document.getElementById("useLocal").checked;
+  const backendUrl = useLocal ? (document.getElementById("backendUrl").value.trim() || LOCAL_BACKEND) : "";
 
   // Only update the key if a new one was typed; otherwise keep existing
   const { zdriveApiKey: existingKey } = await chrome.storage.sync.get("zdriveApiKey");

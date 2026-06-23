@@ -22,7 +22,7 @@ async function getSettings() {
 
 async function postAnalyze(text, url, mode) {
   const { backendUrl, zdriveApiKey, useLocal } = await getSettings();
-  const base = useLocal ? LOCALHOST_BACKEND : backendUrl;
+  const base = useLocal ? (backendUrl || LOCALHOST_BACKEND) : DEFAULT_BACKEND;
   const controller = new AbortController();
   const timeoutMs = mode === "deep" ? 360_000 : 30_000;
   const tid = setTimeout(() => controller.abort(), timeoutMs);
@@ -63,6 +63,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const payload = { type: "PAGE_RESULT", url: msg.url, data: result.data };
         chrome.storage.session.set({ lastResult: { ...payload, ts: Date.now() } });
         chrome.runtime.sendMessage(payload).catch(() => {});
+      } else {
+        chrome.runtime.sendMessage({ type: "SCAN_ERROR", url: msg.url, error: result.error || "Unknown error" }).catch(() => {});
       }
     })();
     return true;
