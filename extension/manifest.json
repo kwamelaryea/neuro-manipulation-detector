@@ -7,8 +7,8 @@
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://*.workers.dev/*",
-    "https://*.fly.dev/*"
+    "https://zdrive-neuro-lens.kwame-laryea.workers.dev/*",
+    "https://zdrive-neuro-lens.fly.dev/*"
   ],
   "background": {
     "service_worker": "background.js"

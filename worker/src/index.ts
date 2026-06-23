@@ -223,9 +223,12 @@ async function handleAnalyze(req: Request, env: Env, ctx: ExecutionContext): Pro
       );
     }
     try {
+      const deepHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      const fwdKey = req.headers.get('X-ZDrive-API-Key');
+      if (fwdKey) deepHeaders['X-ZDrive-API-Key'] = fwdKey;
       const deepRes = await fetch(`${env.DEEP_SCAN_URL}/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: deepHeaders,
         body: JSON.stringify({ text: text.slice(0, 4000), url: body.url, mode: 'deep' }),
       });
       if (!deepRes.ok) {

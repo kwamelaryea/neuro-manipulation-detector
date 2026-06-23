@@ -4,21 +4,39 @@ mode=fast (default): LLM scorer, ~1-2s latency.
 mode=deep:           TRIBE v2 via Modal A10G, ~3-4 min latency.
                      Requires NMD_USE_MODAL=true at server startup.
 """
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from cache import AnalysisCache
 from models import AnalyzeRequest, AnalyzeResponse
 from scorer_llm import score_text as _score_fast
 
+INTERNAL_KEY = os.environ.get("INTERNAL_SERVICE_KEY", "")
+
 app = FastAPI(title="Neuro Manipulation Detector")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["chrome-extension://*", "https://zdrive-neuro-lens.kwame-laryea.workers.dev"],
+    allow_origin_regex=r"^chrome-extension://.*$",
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "X-ZDrive-API-Key"],
 )
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    if request.url.path == "/health" or request.method == "OPTIONS":
+        return await call_next(request)
+    key = request.headers.get("X-ZDrive-API-Key", "")
+    if INTERNAL_KEY and key == INTERNAL_KEY:
+        return await call_next(request)
+    if key.startswith("znl_") and len(key) >= 16:
+        return await call_next(request)
+    return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
 _cache = AnalysisCache()
 
