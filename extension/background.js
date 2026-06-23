@@ -9,9 +9,10 @@ const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
 const LOCALHOST_BACKEND = "http://localhost:8000";
 
 async function getSettings() {
-  const { backendUrl, zdriveApiKey, enabled, useLocal } = await chrome.storage.sync.get([
-    "backendUrl", "zdriveApiKey", "enabled", "useLocal",
+  const { backendUrl, enabled, useLocal } = await chrome.storage.sync.get([
+    "backendUrl", "enabled", "useLocal",
   ]);
+  const { zdriveApiKey } = await chrome.storage.local.get("zdriveApiKey");
   return {
     backendUrl: backendUrl || DEFAULT_BACKEND,
     zdriveApiKey: zdriveApiKey || "",

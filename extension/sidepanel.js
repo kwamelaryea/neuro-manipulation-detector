@@ -2,6 +2,10 @@ const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
 const DEEP_BACKEND   = "https://zdrive-neuro-lens.fly.dev";
 const LOCAL_BACKEND   = "http://localhost:8000";
 
+function esc(s) {
+  return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
 // ── Plain-English label maps ───────────────────────────────────────────────
 
 const TECHNIQUE_LABELS = {
@@ -73,10 +77,10 @@ function scoreCardHTML(data, label, scorerTag) {
   const pfcPct = Math.max(2, data.pfc_score * 100).toFixed(0);
   const tagClass = scorerTag === "TRIBE v2" ? "tribe" : "llm";
   const tag = scorerTag
-    ? `<span class="scorer-tag ${tagClass}">${scorerTag}</span>`
+    ? `<span class="scorer-tag ${tagClass}">${esc(scorerTag)}</span>`
     : "";
-  const confClass = `pill-conf-${data.confidence}`;
-  const technique = TECHNIQUE_LABELS[data.dominant_technique] || data.dominant_technique;
+  const confClass = `pill-conf-${esc(data.confidence)}`;
+  const technique = TECHNIQUE_LABELS[data.dominant_technique] || esc(data.dominant_technique);
   const verdict = MI_LABEL(data.manipulation_index);
   const confDesc = data.confidence === "high"
     ? "High confidence"
@@ -86,14 +90,14 @@ function scoreCardHTML(data, label, scorerTag) {
   return `
     <div class="score-card">
       <div class="card-header">
-        <span class="card-label">${label}</span>
+        <span class="card-label">${esc(label)}</span>
         ${tag}
       </div>
       <div class="mi-display">
-        <span class="mi-val" style="color:${color}">${data.manipulation_index.toFixed(1)}</span>
+        <span class="mi-val" style="color:${color}">${esc(data.manipulation_index.toFixed(1))}</span>
         <div class="mi-meta">
           <span class="mi-denom">/ 10</span>
-          <span class="mi-verdict" style="color:${color}">${verdict}</span>
+          <span class="mi-verdict" style="color:${color}">${esc(verdict)}</span>
         </div>
       </div>
       <div class="mi-bar-wrap">
@@ -109,7 +113,7 @@ function scoreCardHTML(data, label, scorerTag) {
           <div class="bio-track">
             <div class="bio-fill" style="width:${limbicPct}%;background:#8B5CF6"></div>
           </div>
-          <span class="bio-val">${(data.limbic_score * 100).toFixed(0)}%</span>
+          <span class="bio-val">${esc((data.limbic_score * 100).toFixed(0))}%</span>
         </div>
         ${data.roi_detail ? roiSubBarsHTML(LIMBIC_ROIS, data.roi_detail) : ""}
         <div class="bio-bar-row" title="Predicted activity in the rational brain. High = content engages your critical thinking rather than bypassing it.">
@@ -120,13 +124,13 @@ function scoreCardHTML(data, label, scorerTag) {
           <div class="bio-track">
             <div class="bio-fill" style="width:${pfcPct}%;background:#14B8A6"></div>
           </div>
-          <span class="bio-val">${(data.pfc_score * 100).toFixed(0)}%</span>
+          <span class="bio-val">${esc((data.pfc_score * 100).toFixed(0))}%</span>
         </div>
         ${data.roi_detail ? roiSubBarsHTML(PFC_ROIS, data.roi_detail) : ""}
       </div>
       <div class="pill-row">
-        <span class="pill ${confClass}">${confDesc}</span>
-        <span class="pill pill-technique">${technique}</span>
+        <span class="pill ${confClass}">${esc(confDesc)}</span>
+        <span class="pill pill-technique">${esc(technique)}</span>
       </div>
       ${data.manipulation_index >= 7 ? `
       <a class="mi-cta" href="https://zdrive.io?utm_source=neuro-lens&utm_medium=extension&utm_content=high-mi-cta&utm_campaign=research-privately" target="_blank">
@@ -149,13 +153,13 @@ function collapseFastScan() {
   if (!_lastFastData) return;
   const d = _lastFastData;
   const color = miColor(d.manipulation_index);
-  const technique = TECHNIQUE_LABELS[d.dominant_technique] || d.dominant_technique;
+  const technique = TECHNIQUE_LABELS[d.dominant_technique] || esc(d.dominant_technique);
   document.getElementById("fastResult").innerHTML = `
     <div class="fast-collapsed">
       <span class="fast-collapsed-label">FAST SCAN</span>
-      <span class="fast-collapsed-score" style="color:${color}">${d.manipulation_index.toFixed(1)}</span>
+      <span class="fast-collapsed-score" style="color:${color}">${esc(d.manipulation_index.toFixed(1))}</span>
       <span class="fast-collapsed-sep">&middot;</span>
-      <span class="fast-collapsed-technique">${technique}</span>
+      <span class="fast-collapsed-technique">${esc(technique)}</span>
       <span class="scorer-tag llm">LLM</span>
     </div>
   `;
@@ -198,7 +202,7 @@ function showDeepError(msg) {
   `;
   document.getElementById("deepResult").innerHTML = `
     <div style="color:#DC2626;font-size:11px;padding:6px 0">
-      Deep scan failed: ${msg || "unknown error"}
+      Deep scan failed: ${esc(msg || "unknown error")}
     </div>
   `;
   attachDeepBtn();
@@ -211,9 +215,8 @@ async function runDeepScan(text, url, tabId) {
   _deepRunning = true;
   showDeepScanning();
 
-  const { backendUrl, zdriveApiKey, useLocal } = await chrome.storage.sync.get([
-    "backendUrl", "zdriveApiKey", "useLocal",
-  ]);
+  const { backendUrl, useLocal } = await chrome.storage.sync.get(["backendUrl", "useLocal"]);
+  const { zdriveApiKey } = await chrome.storage.local.get("zdriveApiKey");
 
   const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEEP_BACKEND;
   const trimmed = text.slice(0, 3000);
@@ -282,7 +285,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     document.getElementById("fastResult").innerHTML = `
       <div class="waiting">
         <div class="waiting-text" style="color:#DC2626;font-size:11px">
-          Scan failed: ${msg.error}<br>
+          Scan failed: ${esc(msg.error)}<br>
           <span style="color:#6B7280;font-size:10px">Check settings or try reloading the page</span>
         </div>
       </div>
@@ -364,9 +367,19 @@ function updateKeyDisplay(key) {
 }
 
 async function loadSettings() {
-  const { backendUrl, zdriveApiKey, enabled, useLocal } = await chrome.storage.sync.get([
-    "backendUrl", "zdriveApiKey", "enabled", "useLocal",
+  const { backendUrl, enabled, useLocal } = await chrome.storage.sync.get([
+    "backendUrl", "enabled", "useLocal",
   ]);
+  let { zdriveApiKey } = await chrome.storage.local.get("zdriveApiKey");
+  // Migrate key from sync → local (one-time)
+  if (!zdriveApiKey) {
+    const { zdriveApiKey: syncKey } = await chrome.storage.sync.get("zdriveApiKey");
+    if (syncKey) {
+      zdriveApiKey = syncKey;
+      await chrome.storage.local.set({ zdriveApiKey });
+      await chrome.storage.sync.remove("zdriveApiKey");
+    }
+  }
   document.getElementById("zdriveApiKey").value = "";  // never pre-fill password fields
   document.getElementById("backendUrl").value = backendUrl || LOCAL_BACKEND;
   document.getElementById("enabled").checked = enabled !== false;
@@ -392,10 +405,11 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const backendUrl = useLocal ? (document.getElementById("backendUrl").value.trim() || LOCAL_BACKEND) : "";
 
   // Only update the key if a new one was typed; otherwise keep existing
-  const { zdriveApiKey: existingKey } = await chrome.storage.sync.get("zdriveApiKey");
+  const { zdriveApiKey: existingKey } = await chrome.storage.local.get("zdriveApiKey");
   const zdriveApiKey = newKey || existingKey || "";
 
-  await chrome.storage.sync.set({ zdriveApiKey, backendUrl, enabled, useLocal });
+  await chrome.storage.local.set({ zdriveApiKey });
+  await chrome.storage.sync.set({ backendUrl, enabled, useLocal });
   updateKeyDisplay(zdriveApiKey);
   document.getElementById("zdriveApiKey").value = "";
 
@@ -404,7 +418,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   if (!enabled) {
     msg = "Extension is disabled. Toggle Enabled to start scanning.";
   } else if (useLocal) {
-    msg = `Scanning via local backend at ${backendUrl}. Make sure the server is running.`;
+    msg = `Scanning via local backend at ${esc(backendUrl)}. Make sure the server is running.`;
   } else if (zdriveApiKey) {
     msg = `Scanning via ZDrive Neuro Lens cloud. 1 credit per page scan. <a id="goBack">← Return to results</a>`;
   } else {

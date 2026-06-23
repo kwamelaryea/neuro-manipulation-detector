@@ -72,6 +72,12 @@ function scheduleAnalyze() {
 window.addEventListener("scroll", scheduleAnalyze, { passive: true });
 window.addEventListener("load", scheduleAnalyze);
 
+// --- helpers --------------------------------------------------------------
+
+function esc(s) {
+  return String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
 // --- overlay --------------------------------------------------------------
 
 const BADGE_TECHNIQUES = {
@@ -110,10 +116,10 @@ function renderBadge(data, scorerLabel) {
   const color = badgeColor(data.manipulation_index);
   badge.style.setProperty("--nmd-accent", color);
 
-  const technique = BADGE_TECHNIQUES[data.dominant_technique] || data.dominant_technique;
+  const technique = BADGE_TECHNIQUES[data.dominant_technique] || esc(data.dominant_technique);
   const verdict = BADGE_VERDICT(data.manipulation_index);
   const sourceRow = scorerLabel
-    ? `<div class="nmd-row nmd-source-row"><span>Scorer</span><span class="nmd-tribe-tag">${scorerLabel}</span></div>`
+    ? `<div class="nmd-row nmd-source-row"><span>Scorer</span><span class="nmd-tribe-tag">${esc(scorerLabel)}</span></div>`
     : "";
   const deepBtn = scorerLabel === "TRIBE v2"
     ? ""
@@ -122,14 +128,14 @@ function renderBadge(data, scorerLabel) {
   badge.innerHTML = `
     <div class="nmd-row nmd-headline">
       <span class="nmd-dot"></span>
-      <span class="nmd-mi">${data.manipulation_index.toFixed(1)}</span>
-      <span class="nmd-label">${verdict}</span>
+      <span class="nmd-mi">${esc(data.manipulation_index.toFixed(1))}</span>
+      <span class="nmd-label">${esc(verdict)}</span>
     </div>
     <div class="nmd-detail">
-      <div class="nmd-row"><span>Emotional pull</span><span>${(data.limbic_score * 100).toFixed(0)}%</span></div>
-      <div class="nmd-row"><span>Rational guard</span><span>${(data.pfc_score * 100).toFixed(0)}%</span></div>
-      <div class="nmd-row"><span>Tactic</span><span>${technique}</span></div>
-      <div class="nmd-row"><span>Confidence</span><span>${data.confidence}</span></div>
+      <div class="nmd-row"><span>Emotional pull</span><span>${esc((data.limbic_score * 100).toFixed(0))}%</span></div>
+      <div class="nmd-row"><span>Rational guard</span><span>${esc((data.pfc_score * 100).toFixed(0))}%</span></div>
+      <div class="nmd-row"><span>Tactic</span><span>${esc(technique)}</span></div>
+      <div class="nmd-row"><span>Confidence</span><span>${esc(data.confidence)}</span></div>
       ${sourceRow}
       ${deepBtn}
     </div>
@@ -200,7 +206,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const badge = document.getElementById("nmd-badge");
       if (badge) {
         badge.classList.remove("nmd-scanning");
-        badge.innerHTML += `<div style="color:#DC2626;font-size:11px;margin-top:6px">Deep scan failed: ${msg.error || "unknown"}</div>`;
+        badge.innerHTML += `<div style="color:#DC2626;font-size:11px;margin-top:6px">Deep scan failed: ${esc(msg.error || "unknown")}</div>`;
       }
     }
   }
