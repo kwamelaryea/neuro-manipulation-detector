@@ -1,8 +1,17 @@
 // Service worker: relays ANALYZE and DEEP_ANALYZE requests to the backend.
 // Opens the side panel when the extension icon is clicked.
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  // Migrate API key from sync → local (one-time, after H2 storage change)
+  const { zdriveApiKey: localKey } = await chrome.storage.local.get("zdriveApiKey");
+  if (!localKey) {
+    const { zdriveApiKey: syncKey } = await chrome.storage.sync.get("zdriveApiKey");
+    if (syncKey) {
+      await chrome.storage.local.set({ zdriveApiKey: syncKey });
+      await chrome.storage.sync.remove("zdriveApiKey");
+    }
+  }
 });
 
 const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
