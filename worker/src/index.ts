@@ -93,7 +93,7 @@ function withCors(res: Response): Response {
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 
-function checkApiKey(req: Request, env: Env): boolean {
+export function checkApiKey(req: Request, env: Env): boolean {
   const key = req.headers.get('X-ZDrive-API-Key');
   if (!key) return false;
   // Beta: accept any znl_ prefixed key (billing is a no-op; tighten when accounts ship)
@@ -134,7 +134,7 @@ async function keccak256Hex(input: string): Promise<string> {
 
 // ── Inference ──────────────────────────────────────────────────────────────
 
-function extractJson(raw: string): Record<string, unknown> {
+export function extractJson(raw: string): Record<string, unknown> {
   // Strip Qwen3 <think>…</think> blocks — greedy regex grabs braces inside them
   const stripped = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   const fenced = stripped.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
