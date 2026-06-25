@@ -1,15 +1,15 @@
 """Convert ROI z-scores into the AnalyzeResponse contract.
 
-MI calibration v3 (2026-06-22): z-scored contrast formula.
-ROI z-scores are relative to a neutral population baseline — positive
-means this text activates the region more than neutral text.
+MI calibration v4 (2026-06-25): peak-aware z-scoring.
+ROI z-scores use 90th-percentile across time steps (not grand mean)
+to prevent long neutral body text from diluting manipulative peaks.
 
 MI = sigmoid(emotional_z - control_z) scaled to 0-10.
   emotional_z: mean z across insula, TPJ, MTG, parahippocampal
   control_z:   mean z across Broca45, STS, dlPFC, ACC
 
-A neutral text yields z ≈ 0 in all regions → MI ≈ 5 * sigmoid(0) = 5.
-To shift the neutral midpoint to ~2, we subtract a bias.
+Neutral text yields percentile z ≈ 0.3–0.5 (positive bias from P90).
+INTENSITY_SHIFT compensates so neutral MI stays ≈ 2.
 """
 import math
 
@@ -17,7 +17,7 @@ from roi import EMOTIONAL_ROIS, CONTROL_ROIS
 from models import AnalyzeResponse
 
 INTENSITY_SCALE = 3.0
-INTENSITY_SHIFT = 0.4
+INTENSITY_SHIFT = 1.0
 CONTRAST_WEIGHT = 2.0
 TYPOGRAPHIC_WEIGHT = 3.0
 

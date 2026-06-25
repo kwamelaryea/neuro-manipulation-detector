@@ -78,12 +78,15 @@ def get_roi_vertex_indices() -> dict[str, tuple[int, ...]]:
     return {roi: tuple(v) for roi, v in index_map.items()}
 
 
-def roi_means(activations: np.ndarray, index_map: dict[str, tuple[int, ...]]) -> dict[str, float]:
-    """Per-ROI z-scored activation means, relative to neutral baseline.
+PEAK_PERCENTILE = 90
 
-    If baseline files exist: z-score each vertex against population stats,
-    then average z-scores over time and ROI vertices. Positive z = this text
-    activates this region more than neutral text does.
+
+def roi_means(activations: np.ndarray, index_map: dict[str, tuple[int, ...]]) -> dict[str, float]:
+    """Per-ROI peak z-scored activations, relative to neutral baseline.
+
+    Uses 90th-percentile across time steps (after averaging across vertices
+    within each ROI per time step). This prevents long neutral body text from
+    diluting manipulative peaks in headlines/ledes.
 
     If no baseline: fall back to per-sample min-max (legacy behavior).
     """
@@ -105,5 +108,6 @@ def roi_means(activations: np.ndarray, index_map: dict[str, tuple[int, ...]]) ->
             means[roi] = 0.0
             continue
         roi_acts = a[:, list(idx)]
-        means[roi] = float(roi_acts.mean())
+        time_means = roi_acts.mean(axis=1)
+        means[roi] = float(np.percentile(time_means, PEAK_PERCENTILE))
     return means

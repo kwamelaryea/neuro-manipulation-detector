@@ -68,3 +68,19 @@ def test_roi_detail_values_in_unit_range():
     out = compute_scores(_roi(1.0, -1.0), text_len=300)
     for v in out.roi_detail.values():
         assert 0.0 <= v <= 1.0
+
+
+def test_peak_z_scores_produce_high_mi():
+    """P90 z-scores from a long manipulative article should yield MI > 7."""
+    out = compute_scores(_roi(emotional_z=2.0, control_z=0.5), text_len=3000)
+    assert out.manipulation_index >= 7.0, (
+        f"MI {out.manipulation_index} too low for strong emotional peaks"
+    )
+
+
+def test_moderate_neutral_z_stays_low():
+    """Slightly positive z-scores (P90 bias on neutral text) should stay MI < 4."""
+    out = compute_scores(_roi(emotional_z=0.5, control_z=0.5), text_len=3000)
+    assert out.manipulation_index < 4.0, (
+        f"MI {out.manipulation_index} too high for neutral P90 bias"
+    )

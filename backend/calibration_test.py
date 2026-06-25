@@ -121,10 +121,17 @@ CORPUS = [
 ]
 
 
+_AUTH_KEY = ""
+
+
 def scan(url: str, text: str, mode: str) -> dict:
+    headers = {"Content-Type": "application/json"}
+    if _AUTH_KEY:
+        headers["X-ZDrive-API-Key"] = _AUTH_KEY
     r = requests.post(
         f"{url}/analyze",
         json={"text": text, "mode": mode},
+        headers=headers,
         timeout=360,
     )
     r.raise_for_status()
@@ -219,5 +226,9 @@ if __name__ == "__main__":
     p.add_argument("--deep", action="store_true", help="Run TRIBE v2 deep scans")
     p.add_argument("--both", action="store_true", help="Run both LLM and TRIBE v2, compare")
     p.add_argument("--url", default="http://localhost:8000", help="Backend URL")
+    p.add_argument("--key", default=None, help="X-ZDrive-API-Key for authenticated endpoints")
     p.add_argument("--json", default=None, help="Save results to JSON file")
-    run(p.parse_args())
+    args = p.parse_args()
+    if args.key:
+        _AUTH_KEY = args.key
+    run(args)
