@@ -41,6 +41,7 @@ const MI_LABEL = (index) => {
 let _currentUrl = "";
 let _deepRunning = false;
 let _lastFastData = null;
+let _deepTimer = null;
 
 // ── Score rendering ────────────────────────────────────────────────────────
 
@@ -165,20 +166,39 @@ function collapseFastScan() {
   `;
 }
 
+function clearDeepTimer() {
+  if (_deepTimer) { clearInterval(_deepTimer); _deepTimer = null; }
+}
+
 function showDeepScanning() {
+  const start = Date.now();
   document.getElementById("deepTrigger").innerHTML = `
     <div class="deep-scanning">
       <div class="pulse"></div>
       <div>
         <div>Neural inference running…</div>
-        <div style="font-size:10px;color:#6B7280;margin-top:2px">TRIBE v2 brain scan — usually 1–3 min</div>
+        <div id="deepTimerLine" style="font-size:10px;color:#6B7280;margin-top:2px">TRIBE v2 brain scan — usually 1–3 min</div>
       </div>
     </div>
   `;
+  clearDeepTimer();
+  _deepTimer = setInterval(() => {
+    const el = document.getElementById("deepTimerLine");
+    if (!el) { clearDeepTimer(); return; }
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    const hint = elapsed > 90
+      ? "GPU cold start — hang tight, almost there"
+      : "TRIBE v2 brain scan — usually 1–3 min";
+    el.textContent = `${hint} · ${timeStr}`;
+  }, 1000);
 }
 
 function showDeepResult(data) {
   _deepRunning = false;
+  clearDeepTimer();
   const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   document.getElementById("deepTrigger").innerHTML = "";
   const isLlmFallback = data.scorer === "llm";
@@ -195,6 +215,7 @@ function showDeepResult(data) {
 
 function showDeepError(msg) {
   _deepRunning = false;
+  clearDeepTimer();
   document.getElementById("deepTrigger").innerHTML = `
     <button class="deep-btn" id="deepBtn">
       🔬 Retry Deep Scan
@@ -210,6 +231,7 @@ function showDeepError(msg) {
 
 function showKeyError(context) {
   _deepRunning = false;
+  clearDeepTimer();
   const el = context === "fast" ? "fastResult" : "deepResult";
   if (context !== "fast") {
     document.getElementById("deepTrigger").innerHTML = "";
@@ -241,11 +263,19 @@ function showKeyError(context) {
 
 async function runDeepScan(text, url, tabId) {
   if (_deepRunning) return;
-  _deepRunning = true;
-  showDeepScanning();
 
+  // Pre-flight: show key error immediately if no key — no network request needed.
   const { backendUrl, useLocal } = await chrome.storage.sync.get(["backendUrl", "useLocal"]);
   const { zdriveApiKey } = await chrome.storage.local.get("zdriveApiKey");
+  if (!zdriveApiKey && !useLocal) {
+    document.getElementById("deepSection").style.display = "block";
+    showKeyError("deep");
+    if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: "auth" }).catch(() => {});
+    return;
+  }
+
+  _deepRunning = true;
+  showDeepScanning();
 
   const base = useLocal ? (backendUrl || LOCAL_BACKEND) : DEEP_BACKEND;
   const trimmed = text.slice(0, 3000);
@@ -255,7 +285,7 @@ async function runDeepScan(text, url, tabId) {
     const headers = { "Content-Type": "application/json" };
     if (zdriveApiKey && !useLocal) headers["X-ZDrive-API-Key"] = zdriveApiKey;
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 360_000);
+    const tid = setTimeout(() => controller.abort(), 480_000);
     const res = await fetch(`${base}/analyze`, {
       method: "POST",
       headers,
@@ -286,7 +316,9 @@ async function runDeepScan(text, url, tabId) {
       showKeyError("deep");
       if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: "auth" }).catch(() => {});
     } else {
-      const errMsg = e.name === "AbortError" ? `Timed out (${base})` : `${e} (${base})`;
+      const errMsg = e.name === "AbortError"
+        ? "GPU cold start took too long. Click Retry — it should be warm now."
+        : `${e} (${base})`;
       showDeepError(errMsg);
       if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: errMsg }).catch(() => {});
     }
