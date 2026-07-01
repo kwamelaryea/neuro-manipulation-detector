@@ -2,16 +2,28 @@
 // Opens the side panel when the extension icon is clicked.
 
 chrome.runtime.onInstalled.addListener(async () => {
-  // Migrate API key from sync → local (one-time, after H2 storage change)
   const { zdriveApiKey: localKey } = await chrome.storage.local.get("zdriveApiKey");
   if (!localKey) {
+    // Migrate from sync storage (one-time, H2 fix)
     const { zdriveApiKey: syncKey } = await chrome.storage.sync.get("zdriveApiKey");
     if (syncKey) {
       await chrome.storage.local.set({ zdriveApiKey: syncKey });
       await chrome.storage.sync.remove("zdriveApiKey");
+    } else {
+      // Auto-generate a beta key so scans work immediately on fresh install.
+      // CF Worker accepts any znl_ prefixed key ≥16 chars in beta mode.
+      const rand = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+        .map(b => b.toString(16).padStart(2, "0")).join("");
+      await chrome.storage.local.set({ zdriveApiKey: `znl_${rand}` });
     }
   }
 });
+
+// Clear any stale openPanelOnActionClick flag persisted by old installs.
+// That flag blocks chrome.action.onClicked from firing; must be false.
+if (chrome.sidePanel?.setPanelBehavior) {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
+}
 
 // ── Open panel helper ─────────────────────────────────────────────────────────
 // Tries Chrome's native side panel; falls back to a popup window for Arc and
