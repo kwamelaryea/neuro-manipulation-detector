@@ -2,7 +2,6 @@
 // Opens the side panel when the extension icon is clicked.
 
 chrome.runtime.onInstalled.addListener(async () => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   // Migrate API key from sync → local (one-time, after H2 storage change)
   const { zdriveApiKey: localKey } = await chrome.storage.local.get("zdriveApiKey");
   if (!localKey) {
@@ -12,6 +11,34 @@ chrome.runtime.onInstalled.addListener(async () => {
       await chrome.storage.sync.remove("zdriveApiKey");
     }
   }
+});
+
+// ── Open panel helper ─────────────────────────────────────────────────────────
+// Tries Chrome's native side panel; falls back to a popup window for Arc and
+// other Chromium forks that don't implement chrome.sidePanel.
+async function openPanel(tabId) {
+  if (chrome.sidePanel?.open) {
+    try {
+      await chrome.sidePanel.open({ tabId });
+      return;
+    } catch (_) {
+      // Side panel API unavailable (Arc, other Chromium forks) — fall through
+    }
+  }
+  chrome.windows.create({
+    url: chrome.runtime.getURL("sidepanel.html"),
+    type: "popup",
+    width: 440,
+    height: 680,
+  }).catch(() => {});
+}
+
+// ── Action click ──────────────────────────────────────────────────────────────
+// Top-level registration re-fires every time the SW wakes from idle, so the
+// handler is never lost after Chrome kills the SW. setPanelBehavior() was
+// removed: it blocked this listener on Chrome and had no effect in Arc.
+chrome.action.onClicked.addListener((tab) => {
+  openPanel(tab.id);
 });
 
 const DEFAULT_BACKEND = "https://zdrive-neuro-lens.kwame-laryea.workers.dev";
@@ -85,8 +112,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Service workers can be killed by Chrome during a 4-min fetch, so we
     // delegate the actual HTTP call to sidepanel.js instead.
     const tabId = sender.tab?.id;
-    // Open the side panel so the user can watch progress (user gesture chain preserved).
-    if (tabId) chrome.sidePanel.open({ tabId }).catch(() => {});
+    // Open the panel so the user can watch progress (side panel or popup fallback).
+    if (tabId) openPanel(tabId);
     if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_SCANNING" }).catch(() => {});
     // Store request so side panel can pick it up if opened after the click.
     chrome.storage.session.set({
