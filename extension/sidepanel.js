@@ -208,6 +208,35 @@ function showDeepError(msg) {
   attachDeepBtn();
 }
 
+function showKeyError(context) {
+  _deepRunning = false;
+  const el = context === "fast" ? "fastResult" : "deepResult";
+  if (context !== "fast") {
+    document.getElementById("deepTrigger").innerHTML = "";
+  }
+  document.getElementById(el).innerHTML = `
+    <div class="key-error-card">
+      <div class="key-error-icon">🔑</div>
+      <div class="key-error-title">ZDrive key needed</div>
+      <div class="key-error-body">
+        Neuro Lens runs on ZDrive's private AI infrastructure — your scans never leave a secure enclave.
+        A free key unlocks unlimited fast scans and neural deep scans.
+      </div>
+      <a class="key-error-cta"
+         href="https://zdrive.io?utm_source=neuro-lens&utm_medium=extension&utm_content=key-error-${esc(context)}"
+         target="_blank">
+        Get your free key at zdrive.io →
+      </a>
+      <button class="key-error-settings" id="keyErrorSettings">
+        Already have a key? Enter it in Settings
+      </button>
+    </div>
+  `;
+  document.getElementById("keyErrorSettings")?.addEventListener("click", () => {
+    loadSettings().then(() => showView("settingsView"));
+  });
+}
+
 // ── Deep scan — runs directly in the side panel page (not in the SW) ───────
 
 async function runDeepScan(text, url, tabId) {
@@ -234,7 +263,13 @@ async function runDeepScan(text, url, tabId) {
       signal: controller.signal,
     });
     clearTimeout(tid);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const err = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      err.body = body;
+      throw err;
+    }
     const data = await res.json();
 
     showDeepResult(data);
@@ -246,11 +281,14 @@ async function runDeepScan(text, url, tabId) {
       chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: true, data }).catch(() => {});
     }
   } catch (e) {
-    const errMsg = e.name === "AbortError" ? `Timed out (${base})` : `${e} (${base})`;
-    showDeepError(errMsg);
     chrome.storage.session.remove("pendingDeepScan");
-    if (tabId) {
-      chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: errMsg }).catch(() => {});
+    if (e.status === 401) {
+      showKeyError("deep");
+      if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: "auth" }).catch(() => {});
+    } else {
+      const errMsg = e.name === "AbortError" ? `Timed out (${base})` : `${e} (${base})`;
+      showDeepError(errMsg);
+      if (tabId) chrome.tabs.sendMessage(tabId, { type: "DEEP_RESULT", ok: false, error: errMsg }).catch(() => {});
     }
   }
 }
@@ -282,14 +320,18 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
   if (msg.type === "SCAN_ERROR") {
     document.getElementById("urlBar").textContent = msg.url || "—";
-    document.getElementById("fastResult").innerHTML = `
-      <div class="waiting">
-        <div class="waiting-text" style="color:#DC2626;font-size:11px">
-          Scan failed: ${esc(msg.error)}<br>
-          <span style="color:#6B7280;font-size:10px">Check settings or try reloading the page</span>
+    if (msg.status === 401) {
+      showKeyError("fast");
+    } else {
+      document.getElementById("fastResult").innerHTML = `
+        <div class="waiting">
+          <div class="waiting-text" style="color:#DC2626;font-size:11px">
+            Scan failed: ${esc(msg.error)}<br>
+            <span style="color:#6B7280;font-size:10px">Check settings or try reloading the page</span>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
   }
   if (msg.type === "DO_DEEP_SCAN") {
     runDeepScan(msg.text, msg.url, msg.tabId);

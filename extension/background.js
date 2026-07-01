@@ -87,7 +87,7 @@ async function postAnalyze(text, url, mode) {
     clearTimeout(tid);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      return { ok: false, error: body.error || `HTTP ${res.status}` };
+      return { ok: false, error: body.error || `HTTP ${res.status}`, status: res.status };
     }
     const data = await res.json();
     return { ok: true, data };
@@ -113,7 +113,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         chrome.storage.session.set({ lastResult: { ...payload, ts: Date.now() } });
         chrome.runtime.sendMessage(payload).catch(() => {});
       } else {
-        chrome.runtime.sendMessage({ type: "SCAN_ERROR", url: msg.url, error: result.error || "Unknown error" }).catch(() => {});
+        chrome.runtime.sendMessage({ type: "SCAN_ERROR", url: msg.url, error: result.error || "Unknown error", status: result.status }).catch(() => {});
       }
     })();
     return true;
