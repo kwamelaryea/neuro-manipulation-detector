@@ -36,7 +36,17 @@ async def auth_middleware(request: Request, call_next):
         return await call_next(request)
     if key.startswith("znl_") and len(key) >= 16:
         return await call_next(request)
-    return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    # Auth middleware runs before CORSMiddleware in the stack, so we must add
+    # CORS headers manually here — otherwise the browser sees a cross-origin
+    # 401 with no Access-Control-Allow-Origin and throws "TypeError: Failed to fetch"
+    # instead of surfacing the real auth error.
+    origin = request.headers.get("origin", "")
+    cors_headers = {}
+    if origin:
+        cors_headers["Access-Control-Allow-Origin"] = origin
+        cors_headers["Access-Control-Allow-Headers"] = "Content-Type, X-ZDrive-API-Key"
+        cors_headers["Vary"] = "Origin"
+    return JSONResponse({"error": "Invalid or missing X-ZDrive-API-Key. Get your key at zdrive.io."}, status_code=401, headers=cors_headers)
 
 _cache = AnalysisCache()
 
