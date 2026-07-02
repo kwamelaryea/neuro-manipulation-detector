@@ -365,6 +365,15 @@ chrome.runtime.onMessage.addListener((msg) => {
       `;
     }
   }
+  if (msg.type === "FAST_SCANNING") {
+    document.getElementById("urlBar").textContent = msg.url ? new URL(msg.url).hostname : "Scanning…";
+    document.getElementById("fastResult").innerHTML = `
+      <div class="waiting">
+        <img class="waiting-icon" src="icons/glass-brain.png" alt="" style="opacity:0.5" />
+        <div class="waiting-text" style="color:#6B7280">Analysing page…</div>
+      </div>
+    `;
+  }
   if (msg.type === "DO_DEEP_SCAN") {
     runDeepScan(msg.text, msg.url, msg.tabId);
   }

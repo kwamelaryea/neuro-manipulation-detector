@@ -73,7 +73,7 @@ async function postAnalyze(text, url, mode) {
   const { backendUrl, zdriveApiKey, useLocal } = await getSettings();
   const base = useLocal ? (backendUrl || LOCALHOST_BACKEND) : DEFAULT_BACKEND;
   const controller = new AbortController();
-  const timeoutMs = mode === "deep" ? 360_000 : 30_000;
+  const timeoutMs = mode === "deep" ? 360_000 : 90_000;
   const tid = setTimeout(() => controller.abort(), timeoutMs);
   const headers = { "Content-Type": "application/json" };
   if (zdriveApiKey && !useLocal) headers["X-ZDrive-API-Key"] = zdriveApiKey;
@@ -105,6 +105,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: false, disabled: true });
         return;
       }
+      chrome.runtime.sendMessage({ type: "FAST_SCANNING", url: msg.url }).catch(() => {});
       const result = await postAnalyze(msg.text, msg.url, "fast");
       sendResponse(result);
       if (result.ok) {
