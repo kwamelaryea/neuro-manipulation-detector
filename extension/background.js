@@ -106,7 +106,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       chrome.runtime.sendMessage({ type: "FAST_SCANNING", url: msg.url }).catch(() => {});
-      const result = await postAnalyze(msg.text, msg.url, "fast");
+      // Truncate for fast scan only — LLM is fast on shorter text and manipulation is
+      // front-loaded. Deep scan (_lastText) stays at MAX_CHARS=4000 so TRIBE v2
+      // gets the full excerpt it was calibrated on.
+      const fastText = msg.text.slice(0, 1500);
+      const result = await postAnalyze(fastText, msg.url, "fast");
       sendResponse(result);
       if (result.ok) {
         // Forward to side panel and persist for when panel opens late.

@@ -3,7 +3,7 @@
 
 const SEEN = new Set();        // SHA-like dedupe by normalized text
 const MIN_CHARS = 40;          // skip trivially short snippets
-const MAX_CHARS = 1500;        // fast scan: manipulation is front-loaded in headline + lede
+const MAX_CHARS = 4000;        // deep scan needs full text; fast scan truncates in background.js
 const DEBOUNCE_MS = 600;
 
 let debounceTimer = null;
